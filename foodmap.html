@@ -4,159 +4,36 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>武陵高中路口美食輪盤</title>
-
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <style>
 *{box-sizing:border-box}
-
-body{
-  margin:0;
-  background:#0f172a;
-  color:#f8fafc;
-  font-family:system-ui,"Microsoft JhengHei",sans-serif
-}
-
-header{
-  padding:14px;
-  background:#1e293b;
-  text-align:center;
-  color:#fbbf24
-}
-
+body{margin:0;background:#0f172a;color:#f8fafc;font-family:system-ui,"Microsoft JhengHei",sans-serif}
+header{padding:14px;background:#1e293b;text-align:center;color:#fbbf24}
 h1{margin:0;font-size:20px}
-
-main{
-  display:flex;
-  height:calc(100dvh - 52px)
-}
-
+main{display:flex;height:calc(100dvh - 52px)}
 #map{flex:1;min-width:0}
-
-.panel{
-  width:380px;
-  padding:18px;
-  background:#1e293b;
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-  overflow:auto
-}
-
+.panel{width:380px;padding:18px;background:#1e293b;display:flex;flex-direction:column;gap:14px;overflow:auto}
 .row{display:flex;gap:8px}
 .row button{flex:1}
-
-button{
-  padding:12px;
-  border:0;
-  border-radius:8px;
-  background:#334155;
-  color:white;
-  font-size:15px;
-  cursor:pointer
-}
-
-button:disabled{
-  opacity:.45;
-  cursor:not-allowed
-}
-
-.gate{
-  background:#0f172a;
-  border:2px solid #334155
-}
-
-.gate.active{
-  border-color:#fbbf24;
-  color:#fbbf24
-}
-
-.card{
-  padding:14px;
-  border:1px solid #334155;
-  border-radius:12px;
-  background:#0f172a;
-  display:flex;
-  flex-direction:column;
-  gap:10px
-}
-
+button{padding:12px;border:0;border-radius:8px;background:#334155;color:white;font-size:15px;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+.gate{background:#0f172a;border:2px solid #334155}
+.gate.active{border-color:#fbbf24;color:#fbbf24}
+.card{padding:14px;border:1px solid #334155;border-radius:12px;background:#0f172a;display:flex;flex-direction:column;gap:10px}
 .label{font-size:14px;color:#94a3b8}
-
-.result{
-  padding:12px;
-  background:#1e293b;
-  border-radius:6px;
-  text-align:center;
-  font-weight:bold
-}
-
+.result{padding:12px;background:#1e293b;border-radius:6px;text-align:center;font-weight:bold}
 .blue{background:#2563eb}
 .orange{background:#d97706}
 .small{font-size:12px;padding:9px}
-
-#position{
-  font-size:13px;
-  color:#38bdf8;
-  line-height:1.6;
-  overflow-wrap:anywhere
-}
-
-#logs{
-  max-height:200px;
-  overflow:auto;
-  background:#0f172a;
-  padding:10px;
-  border-radius:8px
-}
-
-.log{
-  font-size:13px;
-  line-height:1.6;
-  padding:7px 0;
-  border-bottom:1px solid #334155
-}
-
-.note{
-  font-size:12px;
-  color:#94a3b8;
-  line-height:1.7;
-  margin:0
-}
-
-.dog{
-  font-size:28px;
-  line-height:30px;
-  text-align:center;
-  filter:drop-shadow(0 3px 4px #0008)
-}
-
-.modal{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:#000b;
-  z-index:2000;
-  align-items:center;
-  justify-content:center;
-  padding:20px
-}
-
-.modal-box{
-  width:100%;
-  max-width:350px;
-  background:#1e293b;
-  border:2px solid #fbbf24;
-  border-radius:14px;
-  padding:24px;
-  text-align:center
-}
-
+#position{font-size:13px;color:#38bdf8;line-height:1.6;overflow-wrap:anywhere}
+#logs{max-height:200px;overflow:auto;background:#0f172a;padding:10px;border-radius:8px}
+.log{font-size:13px;line-height:1.6;padding:7px 0;border-bottom:1px solid #334155}
+.note{font-size:12px;color:#94a3b8;line-height:1.7;margin:0}
+.dog{font-size:28px;line-height:30px;text-align:center;filter:drop-shadow(0 3px 4px #0008)}
+.modal{display:none;position:fixed;inset:0;background:#000b;z-index:2000;align-items:center;justify-content:center;padding:20px}
+.modal-box{width:100%;max-width:350px;background:#1e293b;border:2px solid #fbbf24;border-radius:14px;padding:24px;text-align:center}
 .modal-box p{line-height:1.8}
-
 @media(max-width:849px){
   main{height:auto;flex-direction:column}
   #map{height:52dvh;flex:none;width:100%}
@@ -178,78 +55,39 @@ button:disabled{
       <div class="label">起點校門</div>
 
       <div class="row" style="margin-top:8px">
-        <button
-          id="front"
-          class="gate active"
-          onclick="selectGate('front')"
-        >
+        <button id="front" class="gate active" onclick="selectGate('front')">
           前門・圓環中山路側
         </button>
-
-        <button
-          id="back"
-          class="gate"
-          onclick="selectGate('back')"
-        >
+        <button id="back" class="gate" onclick="selectGate('back')">
           後門
         </button>
       </div>
 
       <div class="row" style="margin-top:8px">
-        <button
-          class="small"
-          onclick="setGateOnMap('front')"
-        >
+        <button class="small" onclick="setGateOnMap('front')">
           📍 設定前門
         </button>
-
-        <button
-          class="small"
-          onclick="setGateOnMap('back')"
-        >
+        <button class="small" onclick="setGateOnMap('back')">
           📍 設定後門
         </button>
       </div>
     </div>
 
     <div class="card">
-      <div class="label">
-        🧭 一次走到下一個路口，不迴轉
-      </div>
+      <div class="label">🧭 走到下一個可選方向的路口</div>
+      <div class="result" id="direction">尚未轉向</div>
+      <div id="position">準備載入道路…</div>
 
-      <div class="result" id="direction">
-        尚未轉向
-      </div>
-
-      <div id="position">
-        準備載入道路…
-      </div>
-
-      <button
-        id="move"
-        class="blue"
-        disabled
-        onclick="spinMove()"
-      >
+      <button id="move" class="blue" disabled onclick="spinMove()">
         🎲 抽方向並前進
       </button>
     </div>
 
     <div class="card">
-      <div class="label">
-        🍗 美食輪盤・吃的機率 1/3
-      </div>
+      <div class="label">🍗 美食輪盤・吃的機率 1/3</div>
+      <div class="result" id="foodResult">尚未選擇</div>
 
-      <div class="result" id="foodResult">
-        尚未選擇
-      </div>
-
-      <button
-        id="food"
-        class="orange"
-        disabled
-        onclick="spinFood()"
-      >
+      <button id="food" class="orange" disabled onclick="spinFood()">
         🍟 轉美食輪盤
       </button>
     </div>
@@ -259,54 +97,37 @@ button:disabled{
       <div id="logs" aria-live="polite"></div>
     </div>
 
-    <button onclick="resetGame()">
-      🔄 重置／重試載入
-    </button>
+    <button onclick="resetGame()">🔄 重置／重試載入</button>
 
     <div class="row">
-      <button
-        class="small"
-        onclick="document.getElementById('roadFile').click()"
-      >
+      <button class="small"
+        onclick="document.getElementById('roadFile').click()">
         📂 匯入道路
       </button>
-
       <button class="small" onclick="backupRoads()">
         💾 備份道路
       </button>
     </div>
 
-    <input
-      id="roadFile"
-      type="file"
-      accept=".json,.osm,.xml"
-      hidden
-    >
+    <input id="roadFile" type="file" accept=".json,.osm,.xml" hidden>
 
     <p class="note">
-      版本 6。校內道路排除，同一路口附近的岔路合併；
-      禁止原路迴轉。前門右側中山路可沿路走，對側不列入。
-      校門及限制依 OSM 圖資判定，可按「設定」後點地圖校正。
+      版本 7。校內道路、中山路對側、斷頭支線不列入。
+      道路彎曲處不停，只在可選方向的路口停下。
+      同一路口附近的岔路會合併，禁止原路返回。
+      校門可按「設定」後點地圖校正。
       道路備份檔 wuling-roads.json 可與本頁放在 GitHub 同一資料夾。
-      地圖底圖與首次下載仍需網路。
+      實際路口依 OSM 圖資判定。
     </p>
   </div>
 </main>
 
-<div
-  class="modal"
-  id="modal"
-  role="dialog"
-  aria-modal="true"
-  aria-label="美食輪盤結果"
->
+<div class="modal" id="modal" role="dialog" aria-modal="true"
+  aria-label="美食輪盤結果">
   <div class="modal-box">
     <h2>🎉 在附近找美食！</h2>
     <p id="foodDescription"></p>
-
-    <button class="orange" onclick="closeModal()">
-      準備開吃 😋
-    </button>
+    <button class="orange" onclick="closeModal()">準備開吃 😋</button>
   </div>
 </div>
 
@@ -317,10 +138,10 @@ button:disabled{
 
 const $ = id => document.getElementById(id);
 
+// 沿用上一版資料與校門設定。
 const CACHE_KEY = 'wuling-roads-v6';
 const GATE_KEY = 'wuling-gates-v6';
 
-// 同一道路上很接近的岔路，合併成一個路口。
 const MERGE_DISTANCE = 25;
 
 const ROAD_SERVERS = [
@@ -336,7 +157,6 @@ const gates = {
   },
   back: {
     name: '後門',
-    // 原先誤標成前門的位置，依你的說明改為後門。
     coords: [24.9877, 121.2862]
   }
 };
@@ -357,13 +177,8 @@ try {
   }
 } catch (_) {}
 
-let map;
-let dog;
-let trail;
-let pointLayer;
-let campusLayer;
-let gateLayer;
-let foodLayer;
+let map, dog, trail;
+let pointLayer, campusLayer, gateLayer, foodLayer;
 
 let rawData = null;
 let streets = new Map();
@@ -402,7 +217,6 @@ function cancel() {
   version++;
   clearTimeout(spinTimer);
   cancelAnimationFrame(animationFrame);
-
   requestController?.abort();
   requestController = undefined;
 }
@@ -462,10 +276,8 @@ function inside(p, ring) {
     if (
       (a[0] > p[0]) !== (b[0] > p[0]) &&
       p[1] <
-        (b[1] - a[1]) *
-        (p[0] - a[0]) /
-        (b[0] - a[0]) +
-        a[1]
+        (b[1] - a[1]) * (p[0] - a[0]) /
+        (b[0] - a[0]) + a[1]
     ) {
       yes = !yes;
     }
@@ -508,10 +320,7 @@ function nearestSegment(p, segments) {
 
     if (!best || distance < best.distance) {
       best = {
-        a,
-        b,
-        foot,
-        distance,
+        a, b, foot, distance,
         length: Math.sqrt(squared)
       };
     }
@@ -547,8 +356,7 @@ function parseData(text) {
   }
 
   const xml = new DOMParser().parseFromString(
-    text,
-    'application/xml'
+    text, 'application/xml'
   );
 
   if (
@@ -575,19 +383,15 @@ function parseData(text) {
 
     if (type === 'node') {
       elements.push({
-        type,
-        id,
+        type, id, tags,
         lat: Number(element.getAttribute('lat')),
-        lon: Number(element.getAttribute('lon')),
-        tags
+        lon: Number(element.getAttribute('lon'))
       });
     }
 
     if (type === 'way') {
       elements.push({
-        type,
-        id,
-        tags,
+        type, id, tags,
         nodes: [...element.children]
           .filter(t => t.localName === 'nd')
           .map(t => Number(t.getAttribute('ref')))
@@ -596,9 +400,7 @@ function parseData(text) {
 
     if (type === 'relation') {
       elements.push({
-        type,
-        id,
-        tags,
+        type, id, tags,
         members: [...element.children]
           .filter(t => t.localName === 'member')
           .map(t => ({
@@ -645,10 +447,7 @@ function schoolRings(data) {
     ) return;
 
     const points = ids.map(id => nodes.get(id));
-
-    if (points.every(Boolean)) {
-      rings.push(points);
-    }
+    if (points.every(Boolean)) rings.push(points);
   }
 
   for (const way of ways.values()) {
@@ -683,7 +482,6 @@ function schoolRings(data) {
         if (index < 0) break;
 
         const part = parts.splice(index, 1)[0];
-
         if (part[0] !== end) part.reverse();
 
         chain.push(...part.slice(1));
@@ -694,6 +492,33 @@ function schoolRings(data) {
   }
 
   return rings;
+}
+
+// 先移除斷頭支線，避免走進去後只能原路返回。
+function pruneStreetEnds(nodes) {
+  const queue = [...nodes.values()]
+    .filter(n => n.edges.size < 2)
+    .map(n => n.id);
+
+  for (let i = 0; i < queue.length; i++) {
+    const id = queue[i];
+    const node = nodes.get(id);
+
+    if (!node || node.edges.size >= 2) continue;
+
+    for (const next of node.edges.keys()) {
+      const neighbor = nodes.get(next);
+      if (!neighbor) continue;
+
+      neighbor.edges.delete(id);
+
+      if (neighbor.edges.size < 2) {
+        queue.push(next);
+      }
+    }
+
+    nodes.delete(id);
+  }
 }
 
 function buildRoads(data) {
@@ -716,8 +541,10 @@ function buildRoads(data) {
       ])
   );
 
+  // 以街道路口為單位，排除停車場通道、
+  // 校園步道、樓梯等容易產生多餘岔點的道路。
   const allowed =
-    /^(trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|footway|path|steps|road)(_link)?$/;
+    /^(trunk|primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|road)(_link)?$/;
 
   const ways = data.elements.filter(e =>
     e.type === 'way' &&
@@ -773,8 +600,6 @@ function buildRoads(data) {
     throw new Error('圖資中找不到中山路');
   }
 
-  // 尚未手動設定前門時，先找校地附近的圓環，
-  // 選擇圓環靠中山路側的節點。
   if (!gates.front.coords) {
     let best;
 
@@ -789,8 +614,7 @@ function buildRoads(data) {
         if (schoolDistance > 400) continue;
 
         const road = nearestSegment(
-          node.coords,
-          zhongshan
+          node.coords, zhongshan
         );
 
         if (!road || road.distance > 100) continue;
@@ -799,10 +623,7 @@ function buildRoads(data) {
           road.distance + schoolDistance * 0.1;
 
         if (!best || score < best.score) {
-          best = {
-            coords: node.coords,
-            score
-          };
+          best = { coords: node.coords, score };
         }
       }
     }
@@ -814,47 +635,21 @@ function buildRoads(data) {
     }
 
     gates.front.coords = best.coords;
-
-    log(
-      '前門暫依 OSM 圓環定位，可按「設定前門」校正。'
-    );
+    log('前門暫依 OSM 圓環定位，可按「設定前門」校正。');
   }
 
   const front = nearestSegment(
-    gates.front.coords,
-    zhongshan
+    gates.front.coords, zhongshan
   );
 
   if (!front || front.distance > 250) {
     throw new Error('前門離中山路過遠，請重新設定前門');
   }
 
-  const outward = [
-    front.foot[0] - centerXY[0],
-    front.foot[1] - centerXY[1]
-  ];
-
-  const norm = Math.hypot(...outward);
-
-  if (norm < 1) {
-    throw new Error('無法判定前門出校方向');
-  }
-
-  const right = [
-    outward[1] / norm,
-    -outward[0] / norm
-  ];
-
-  const rightward = p =>
-    (p[0] - front.foot[0]) * right[0] +
-    (p[1] - front.foot[1]) * right[1];
-
+  // 中山路只保留學校這一側及道路中心線，
+  // 不再允許由其他路繞進對側。
   function forbidden(p) {
     const q = xy(p);
-
-    // 前門左側方向保留。
-    if (rightward(q) <= 0) return false;
-
     const road = nearestSegment(p, zhongshan);
 
     const side =
@@ -863,11 +658,9 @@ function buildRoads(data) {
     const schoolSide =
       cross(road.a, road.b, centerXY) / road.length;
 
-    // 中山路中心線保留，可以沿路走。
     return Math.abs(side) > 1 && side * schoolSide < 0;
   }
 
-  // 排除校內及中山路右側路段的對岸節點。
   for (const [id, node] of nodes) {
     if (
       !node.edges.size ||
@@ -878,7 +671,6 @@ function buildRoads(data) {
     }
   }
 
-  // 排除穿越校地及跨到右側中山路對岸的連線。
   for (const node of nodes.values()) {
     for (const id of node.edges.keys()) {
       const target = nodes.get(id);
@@ -898,11 +690,7 @@ function buildRoads(data) {
       );
 
       const acrossRoad = zhongshan.some(([c, d]) =>
-        crosses(a, b, c, d) &&
-        rightward([
-          (a[0] + b[0]) / 2,
-          (a[1] + b[1]) / 2
-        ]) > 0
+        crosses(a, b, c, d)
       );
 
       if (throughCampus || acrossRoad) {
@@ -915,16 +703,16 @@ function buildRoads(data) {
     if (!node.edges.size) nodes.delete(id);
   }
 
+  pruneStreetEnds(nodes);
+
   return { nodes, rings };
 }
 
-// 移除道路中間的彎曲點作為停靠點，
-// 但保留完整道路折線，避免小狗直線跨街區。
+// 將道路中間的彎曲點接成道路折線，
+// 不把它們當作需要停下的路口。
 function simplifyRoads(nodes) {
   const junctions = new Map(
-    [...nodes].filter(([, n]) =>
-      n.edges.size !== 2
-    )
+    [...nodes].filter(([, n]) => n.edges.size !== 2)
   );
 
   const corridors = [];
@@ -949,7 +737,6 @@ function simplifyRoads(nodes) {
         ids.push(next);
 
         const target = nodes.get(next);
-
         if (!target || target.edges.size !== 2) break;
 
         const onward = [...target.edges.keys()]
@@ -963,9 +750,7 @@ function simplifyRoads(nodes) {
 
       if (!junctions.has(end) || end === id) continue;
 
-      const coords = ids.map(x =>
-        nodes.get(x).coords
-      );
+      const coords = ids.map(x => nodes.get(x).coords);
 
       corridors.push({
         id: corridors.length,
@@ -986,12 +771,9 @@ function simplifyRoads(nodes) {
     if (parent.get(id) !== id) {
       parent.set(id, root(parent.get(id)));
     }
-
     return parent.get(id);
   }
 
-  // 只合併有道路連接的近距離岔路，
-  // 避免僅因地圖位置接近就把兩條不同道路合併。
   for (const corridor of corridors) {
     if (
       corridor.length <= MERGE_DISTANCE &&
@@ -1011,7 +793,6 @@ function simplifyRoads(nodes) {
     const group = root(id);
 
     if (!groups.has(group)) groups.set(group, []);
-
     groups.get(group).push(id);
   }
 
@@ -1060,9 +841,7 @@ function simplifyRoads(nodes) {
   }
 
   function internalPath(from, to) {
-    if (from === to) {
-      return [nodes.get(from).coords];
-    }
+    if (from === to) return [nodes.get(from).coords];
 
     const queue = [{
       id: from,
@@ -1083,10 +862,7 @@ function simplifyRoads(nodes) {
         if (route.to === to) return coords;
 
         seen.add(route.to);
-        queue.push({
-          id: route.to,
-          coords
-        });
+        queue.push({ id: route.to, coords });
       }
     }
 
@@ -1101,13 +877,11 @@ function simplifyRoads(nodes) {
 
     const coords = [
       ...internalPath(
-        representatives.get(a),
-        corridor.a
+        representatives.get(a), corridor.a
       ),
       ...corridor.coords.slice(1),
       ...internalPath(
-        corridor.b,
-        representatives.get(b)
+        corridor.b, representatives.get(b)
       ).slice(1)
     ];
 
@@ -1133,14 +907,119 @@ function simplifyRoads(nodes) {
   return result;
 }
 
+// 重新清理合併後的路網，
+// 只有前後兩個出口時直接接到下一個有岔路的位置。
+function decisionGraph(input) {
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+
+    for (const [id, node] of input) {
+      node.routes = node.routes.filter(r =>
+        input.has(r.to)
+      );
+
+      if (node.routes.length < 2) {
+        input.delete(id);
+        changed = true;
+      }
+    }
+  }
+
+  const result = new Map();
+
+  for (const [id, node] of input) {
+    if (node.routes.length >= 3) {
+      result.set(id, {
+        id,
+        coords: node.coords,
+        routes: []
+      });
+    }
+  }
+
+  const used = new Set();
+  let serial = 0;
+
+  for (const [id, output] of result) {
+    for (const first of input.get(id).routes) {
+      if (used.has(first.edge)) continue;
+
+      let route = first;
+      let end = first.to;
+
+      const coords = [...first.coords];
+      const seen = new Set();
+
+      used.add(first.edge);
+
+      while (!result.has(end)) {
+        if (seen.has(end)) {
+          end = null;
+          break;
+        }
+
+        seen.add(end);
+
+        const node = input.get(end);
+
+        if (!node) {
+          end = null;
+          break;
+        }
+
+        const next = node.routes.find(r =>
+          r.edge !== route.edge
+        );
+
+        if (!next) {
+          end = null;
+          break;
+        }
+
+        used.add(next.edge);
+        coords.push(...next.coords.slice(1));
+
+        route = next;
+        end = next.to;
+      }
+
+      if (end === null || !result.has(end)) continue;
+
+      const key = serial++;
+
+      output.routes.push({
+        edge: key + ':f',
+        reverseEdge: key + ':r',
+        to: end,
+        name: first.name,
+        coords
+      });
+
+      result.get(end).routes.push({
+        edge: key + ':r',
+        reverseEdge: key + ':f',
+        to: id,
+        name: first.name,
+        coords: [...coords].reverse()
+      });
+    }
+  }
+
+  return result;
+}
+
 function rebuild() {
   const built = buildRoads(rawData);
 
   streets = built.nodes;
-  graph = simplifyRoads(streets);
+  graph = decisionGraph(simplifyRoads(streets));
 
   if (!graph.size) {
-    throw new Error('沒有符合限制的道路');
+    throw new Error(
+      '此範圍沒有連通的路口網路，請確認校門位置或道路圖資'
+    );
   }
 
   pointLayer.clearLayers();
@@ -1155,16 +1034,13 @@ function rebuild() {
     }).addTo(campusLayer);
   }
 
-  // 每個合併後的路口只畫一個點。
   for (const node of graph.values()) {
-    if (node.routes.length >= 3) {
-      L.circleMarker(node.coords, {
-        radius: 5,
-        color: '#fbbf24',
-        weight: 1,
-        fillOpacity: 0.9
-      }).addTo(pointLayer);
-    }
+    L.circleMarker(node.coords, {
+      radius: 5,
+      color: '#fbbf24',
+      weight: 1,
+      fillOpacity: 0.9
+    }).addTo(pointLayer);
   }
 
   gateLayer.clearLayers();
@@ -1188,18 +1064,16 @@ function rebuild() {
 function start() {
   const gate = gates[selectedGate];
 
-  if (!gate.coords) {
-    throw new Error('請先設定校門');
-  }
+  if (!gate.coords) throw new Error('請先設定校門');
 
   let nearest;
   let best = Infinity;
 
   for (const node of streets.values()) {
-    const d = meters(gate.coords, node.coords);
+    const distance = meters(gate.coords, node.coords);
 
-    if (d < best) {
-      best = d;
+    if (distance < best) {
+      best = distance;
       nearest = node;
     }
   }
@@ -1243,10 +1117,7 @@ function start() {
             r.to === route.to
           )
         ) {
-          startRoutes.push({
-            ...route,
-            coords
-          });
+          startRoutes.push({ ...route, coords });
         }
       }
     }
@@ -1274,14 +1145,16 @@ function start() {
     `${Math.round(best)} 公尺。`
   );
 
-  log('✅ 校內排除、路口合併、禁止迴轉。');
+  log(
+    '✅ 校內及中山路對側排除；' +
+    '只停可選方向的路口；不原路迴轉。'
+  );
 }
 
 function cacheData() {
   try {
     localStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify(rawData)
+      CACHE_KEY, JSON.stringify(rawData)
     );
   } catch (_) {
     log('瀏覽器無法保存道路資料，請下載備份。');
@@ -1290,7 +1163,6 @@ function cacheData() {
 
 async function fetchSource(source, token) {
   const controller = new AbortController();
-
   requestController = controller;
 
   const timeout = setTimeout(
@@ -1326,7 +1198,6 @@ async function fetchSource(source, token) {
 async function loadData(token) {
   if (rawData) return;
 
-  // 優先使用瀏覽器已保存的道路。
   try {
     const cached = JSON.parse(
       localStorage.getItem(CACHE_KEY) || 'null'
@@ -1362,8 +1233,7 @@ async function loadData(token) {
     {
       name: 'GitHub 同資料夾的道路檔',
       url: new URL(
-        './wuling-roads.json',
-        document.baseURI
+        './wuling-roads.json', document.baseURI
       ).href,
       timeout: 6000
     },
@@ -1426,12 +1296,10 @@ async function resetGame() {
   if (!map) return;
 
   cancel();
-
   settingGate = null;
   map.getContainer().style.cursor = '';
 
   const token = version;
-
   state('loading');
 
   $('modal').style.display = 'none';
@@ -1444,7 +1312,6 @@ async function resetGame() {
 
   try {
     await loadData(token);
-
     if (token !== version) return;
 
     rebuild();
@@ -1453,7 +1320,6 @@ async function resetGame() {
     if (token !== version) return;
 
     state('error');
-
     $('position').textContent = error.message;
     log('❌ ' + error.message);
   }
@@ -1462,15 +1328,8 @@ async function resetGame() {
 function selectGate(key) {
   selectedGate = key;
 
-  $('front').classList.toggle(
-    'active',
-    key === 'front'
-  );
-
-  $('back').classList.toggle(
-    'active',
-    key === 'back'
-  );
+  $('front').classList.toggle('active', key === 'front');
+  $('back').classList.toggle('active', key === 'back');
 
   resetGame();
 }
@@ -1479,7 +1338,6 @@ function setGateOnMap(key) {
   if (!map) return;
 
   cancel();
-
   settingGate = key;
   state('setting');
 
@@ -1512,28 +1370,24 @@ function bearing(a, b) {
 function turnAngle(route) {
   if (history.length < 2) return null;
 
-  const points = route.coords;
-  const first = points[0];
+  const first = route.coords[0];
 
-  const next = points.find(p =>
+  const next = route.coords.find(p =>
     meters(first, p) >= 8
-  ) || points[points.length - 1];
+  ) || route.coords[route.coords.length - 1];
 
   const end = history[history.length - 1];
-
   let previous = history[history.length - 2];
 
   for (let i = history.length - 2; i >= 0; i--) {
     previous = history[i];
-
     if (meters(previous, end) >= 8) break;
   }
 
   return (
     (
       bearing(first, next) -
-      bearing(previous, end) +
-      540
+      bearing(previous, end) + 540
     ) % 360
   ) - 180;
 }
@@ -1563,19 +1417,16 @@ function routeLabel(route) {
   return `${direction}・${route.name}`;
 }
 
+// 只排除剛剛走來的反向道路。
+// 轉彎角度只用來顯示文字，不用來刪除出口。
 function availableRoutes() {
   const routes = arrived
     ? graph.get(currentId)?.routes || []
     : startRoutes;
 
-  return routes.filter(route => {
-    const angle = turnAngle(route);
-
-    return (
-      route.edge !== previousEdge &&
-      (angle === null || Math.abs(angle) < 150)
-    );
-  });
+  return routes.filter(route =>
+    route.reverseEdge !== previousEdge
+  );
 }
 
 function roulette(draw, done, count = 10) {
@@ -1589,10 +1440,7 @@ function roulette(draw, done, count = 10) {
     if (n >= count) {
       done();
     } else {
-      spinTimer = setTimeout(
-        () => tick(n + 1),
-        80
-      );
+      spinTimer = setTimeout(() => tick(n + 1), 80);
     }
   }
 
@@ -1605,14 +1453,10 @@ function spinMove() {
   const routes = availableRoutes();
 
   if (!routes.length) {
-    $('direction').textContent =
-      '沒有可前進出口';
-
-    $('move').disabled = true;
+    $('direction').textContent = '此處路網資料不完整';
 
     log(
-      '🛑 沒有其他出口，不迴轉。' +
-      '可轉美食輪盤或重置。'
+      '目前沒有連通的下一個出口，請重新設定起點或匯入完整圖資。'
     );
 
     return;
@@ -1633,7 +1477,6 @@ function spinMove() {
       const label = routeLabel(route);
 
       $('direction').textContent = '🧭 ' + label;
-
       animate(route, label);
     }
   );
@@ -1654,11 +1497,7 @@ function animate(route, label) {
   }
 
   const total = lengths[lengths.length - 1];
-
-  const duration = Math.max(
-    700,
-    Math.min(6000, total * 10)
-  );
+  const duration = Math.max(700, Math.min(6000, total * 10));
 
   let started;
 
@@ -1668,20 +1507,16 @@ function animate(route, label) {
     started ??= time;
 
     const progress = Math.min(
-      1,
-      (time - started) / duration
+      1, (time - started) / duration
     );
 
     const traveled = progress * total;
-
     let i = 1;
 
     while (
       i < lengths.length - 1 &&
       lengths[i] < traveled
-    ) {
-      i++;
-    }
+    ) i++;
 
     const fraction =
       (traveled - lengths[i - 1]) /
@@ -1726,17 +1561,8 @@ function animate(route, label) {
 
     log(
       `第 ${steps} 步：${label}，` +
-      '抵達下一個路口／道路終點，停下等待。'
+      '抵達下一個可選方向的路口，停下等待。'
     );
-
-    if (!availableRoutes().length) {
-      $('move').disabled = true;
-
-      log(
-        '🛑 沒有其他出口，不迴轉。' +
-        '可轉美食輪盤或重置。'
-      );
-    }
   }
 
   animationFrame = requestAnimationFrame(draw);
@@ -1750,28 +1576,18 @@ function spinFood() {
   roulette(
     () => {
       $('foodResult').textContent =
-        Math.random() < 1 / 3
-          ? '🎉 吃！'
-          : '❌ 不吃';
+        Math.random() < 1 / 3 ? '🎉 吃！' : '❌ 不吃';
     },
     () => {
       if (Math.floor(Math.random() * 3) !== 0) {
         $('foodResult').textContent = '❌ 不吃';
-
         state('idle');
-
-        if (!availableRoutes().length) {
-          $('move').disabled = true;
-        }
-
-        log('🍔 不吃。');
+        log('🍔 不吃，繼續探索下一個路口。');
         return;
       }
 
       state('finished');
-
-      $('foodResult').textContent =
-        '🎉 在附近找美食！';
+      $('foodResult').textContent = '🎉 在附近找美食！';
 
       const p = dog.getLatLng();
 
@@ -1785,14 +1601,11 @@ function spinFood() {
       }).addTo(foodLayer);
 
       $('foodDescription').textContent =
-        `走過 ${steps} 段道路後，` +
-        '決定在目前位置附近找美食！' +
-        `座標：${p.lat.toFixed(5)}, ` +
-        `${p.lng.toFixed(5)}。` +
+        `走過 ${steps} 段道路後，決定在目前位置附近找美食！` +
+        `座標：${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}。` +
         '尚未搜尋實際店家。';
 
       $('modal').style.display = 'flex';
-
       log('🍔 決定在附近用餐！');
     }
   );
@@ -1825,7 +1638,6 @@ function backupRoads() {
 
 async function importRoads(event) {
   const file = event.target.files[0];
-
   if (!file) return;
 
   try {
@@ -1836,7 +1648,6 @@ async function importRoads(event) {
     }
 
     cancel();
-
     rawData = data;
     cacheData();
 
@@ -1852,14 +1663,10 @@ function init() {
   if (typeof L === 'undefined') {
     $('position').textContent =
       '地圖元件載入失敗，請確認網路後重新整理。';
-
     return;
   }
 
-  map = L.map('map').setView(
-    [24.989, 121.285],
-    17
-  );
+  map = L.map('map').setView([24.989, 121.285], 17);
 
   L.tileLayer(
     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -1913,14 +1720,10 @@ function init() {
     selectGate(key);
   });
 
-  $('roadFile').addEventListener(
-    'change',
-    importRoads
-  );
+  $('roadFile').addEventListener('change', importRoads);
 
   window.addEventListener(
-    'resize',
-    () => map.invalidateSize()
+    'resize', () => map.invalidateSize()
   );
 
   resetGame();
