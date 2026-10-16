@@ -1477,6 +1477,304 @@
     }
 
     window.addEventListener('load', initMap);
+  // ===== 道路資料快取、主站下載、匯入與備份 =====
+
+const ROAD_CACHE_KEY = 'wuling-road-data-v4';
+const oldLoadData = loadData;
+
+// 武陵高中周邊資料範圍
+const LOCAL_BBOX = '121.276,24.982,121.294,24.999';
+
+function validRoadData(data) {
+  if (!Array.isArray(data?.elements)) return false;
+
+  return (
+    data.elements.some(e => e.type === 'node') &&
+    data.elements.some(
+      e => e.type === 'way' && e.tags?.highway
+    ) &&
+    data.elements.some(
+      e =>
+        e.tags?.amenity === 'school' &&
+        /武陵/.test(e.tags?.name || '')
+    )
+  );
+}
+
+function cacheRoadData(data) {
+  if (!validRoadData(data)) {
+    throw new Error('檔案缺少道路或武陵高中校地資料');
+  }
+
+  try {
+    localStorage.setItem(
+      ROAD_CACHE_KEY,
+      JSON.stringify(data)
+    );
+
+    log('✅ 道路資料已儲存在這個瀏覽器。');
+  } catch (_) {
+    log(
+      '⚠️ 瀏覽器無法儲存這份資料，' +
+      '請按「備份道路」下載保存。'
+    );
+  }
+}
+
+function parseOsmFile(text) {
+  // 支援道路 JSON 備份
+  if (text.trim().startsWith('{')) {
+    const result = JSON.parse(text);
+
+    if (!validRoadData(result)) {
+      throw new Error('JSON 缺少道路或校地資料');
+    }
+
+    return result;
+  }
+
+  // 支援 OpenStreetMap XML
+  const doc = new DOMParser().parseFromString(
+    text,
+    'application/xml'
+  );
+
+  if (
+    doc.querySelector('parsererror') ||
+    doc.documentElement.localName !== 'osm'
+  ) {
+    throw new Error('不是有效的 OSM XML 或 JSON 檔案');
+  }
+
+  function tagsOf(element) {
+    return Object.fromEntries(
+      [...element.children]
+        .filter(e => e.localName === 'tag')
+        .map(e => [
+          e.getAttribute('k'),
+          e.getAttribute('v')
+        ])
+    );
+  }
+
+  const elements = [];
+
+  const allowedRoads =
+    /^(trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|footway|path|steps|road)(_link)?$/;
+
+  for (const element of doc.documentElement.children) {
+    const type = element.localName;
+    const id = Number(element.getAttribute('id'));
+    const tags = tagsOf(element);
+
+    if (type === 'node') {
+      elements.push({
+        type,
+        id,
+        lat: Number(element.getAttribute('lat')),
+        lon: Number(element.getAttribute('lon')),
+        tags
+      });
+    }
+
+    if (type === 'way') {
+      const walkable =
+        allowedRoads.test(tags.highway || '') &&
+        tags.area !== 'yes' &&
+        !['private', 'no'].includes(tags.access) &&
+        tags.foot !== 'no';
+
+      const keptTags = { ...tags };
+
+      // 保留校地外框，但不把外框當成道路。
+      if (!walkable) {
+        delete keptTags.highway;
+      }
+
+      elements.push({
+        type,
+        id,
+        tags: keptTags,
+        nodes: [...element.children]
+          .filter(e => e.localName === 'nd')
+          .map(e => Number(e.getAttribute('ref')))
+      });
+    }
+
+    if (type === 'relation') {
+      elements.push({
+        type,
+        id,
+        tags,
+        members: [...element.children]
+          .filter(e => e.localName === 'member')
+          .map(e => ({
+            type: e.getAttribute('type'),
+            ref: Number(e.getAttribute('ref')),
+            role: e.getAttribute('role')
+          }))
+      });
+    }
+  }
+
+  const result = { elements };
+
+  if (!validRoadData(result)) {
+    throw new Error('資料範圍未包含武陵高中校地與道路');
+  }
+
+  return result;
+}
+
+// 替換道路載入流程，保留原本導航規則。
+loadData = async function(token) {
+  // 第一順位：瀏覽器內已儲存的資料
+  try {
+    const cached = JSON.parse(
+      localStorage.getItem(ROAD_CACHE_KEY) || 'null'
+    );
+
+    if (validRoadData(cached)) {
+      rawData = cached;
+
+      log('✅ 使用已儲存的道路資料，不需連道路伺服器。');
+      return;
+    }
+  } catch (_) {}
+
+  // 第二順位：OpenStreetMap 主站
+  $('position').textContent =
+    '正在從 OpenStreetMap 主站下載道路…';
+
+  const request = new AbortController();
+  requestController = request;
+
+  const timeout = setTimeout(
+    () => request.abort(),
+    22000
+  );
+
+  try {
+    const response = await fetch(
+      'https://api.openstreetmap.org/api/0.6/map?bbox=' +
+      LOCAL_BBOX,
+      { signal: request.signal }
+    );
+
+    if (!response.ok) {
+      throw new Error('HTTP ' + response.status);
+    }
+
+    const source = await response.text();
+
+    if (token !== version) return;
+
+    rawData = parseOsmFile(source);
+    cacheRoadData(rawData);
+
+    log('✅ 已從 OpenStreetMap 主站取得道路。');
+    return;
+  } catch (error) {
+    if (token !== version) return;
+
+    log('⚠️ 主站下載未成功，改試道路查詢服務。');
+  } finally {
+    clearTimeout(timeout);
+
+    if (requestController === request) {
+      requestController = undefined;
+    }
+  }
+
+  // 第三順位：原本的備用查詢服務
+  await oldLoadData(token);
+
+  if (token !== version) return;
+
+  if (!validRoadData(rawData)) {
+    throw new Error('道路資料不完整，請匯入備份後重試');
+  }
+
+  cacheRoadData(rawData);
+};
+
+function backupRoads() {
+  if (!validRoadData(rawData)) {
+    log('尚未取得道路資料，現在無法備份。');
+    return;
+  }
+
+  const blob = new Blob(
+    [JSON.stringify(rawData)],
+    { type: 'application/json' }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = 'wuling-roads.json';
+  link.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// 加入匯入及備份按鈕
+const roadTools = document.createElement('div');
+
+roadTools.innerHTML = `
+  <div class="row">
+    <button class="small" id="importRoads">
+      📂 匯入道路
+    </button>
+
+    <button class="small" id="backupRoads">
+      💾 備份道路
+    </button>
+  </div>
+
+  <input
+    id="roadFile"
+    type="file"
+    accept=".json,.osm,.xml"
+    hidden
+  >
+
+  <p class="note" style="margin-top:8px">
+    首次成功載入後會儲存道路資料。
+    若服務無法連線，可匯入道路備份。
+    地圖底圖仍需網路。
+  </p>
+`;
+
+document.querySelector('.panel').append(roadTools);
+
+$('importRoads').onclick = () => {
+  $('roadFile').click();
+};
+
+$('backupRoads').onclick = backupRoads;
+
+$('roadFile').onchange = async event => {
+  const file = event.target.files[0];
+
+  if (!file) return;
+
+  try {
+    const data = parseOsmFile(await file.text());
+
+    cancel();
+    rawData = data;
+
+    cacheRoadData(data);
+
+    await resetGame();
+  } catch (error) {
+    log('❌ 匯入失敗：' + error.message);
+  } finally {
+    event.target.value = '';
+  }
+};
   </script>
 </body>
 </html>
