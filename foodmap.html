@@ -1,1494 +1,528 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>武陵高中路口美食輪盤 🐶</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>武陵高中路口美食輪盤</title>
 
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  >
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+>
 
-  <style>
-    * { box-sizing: border-box; }
+<style>
+*{box-sizing:border-box}
 
-    body {
-      margin: 0;
-      background: #0f172a;
-      color: #f8fafc;
-      font-family: system-ui, "Microsoft JhengHei", sans-serif;
-    }
+body{
+  margin:0;
+  background:#0f172a;
+  color:#f8fafc;
+  font-family:system-ui,"Microsoft JhengHei",sans-serif
+}
 
-    header {
-      padding: 14px;
-      text-align: center;
-      background: #1e293b;
-      color: #fbbf24;
-    }
+header{
+  padding:14px;
+  background:#1e293b;
+  text-align:center;
+  color:#fbbf24
+}
 
-    h1 { margin: 0; font-size: 20px; }
+h1{margin:0;font-size:20px}
 
-    .main-container {
-      display: flex;
-      height: calc(100dvh - 52px);
-    }
+main{
+  display:flex;
+  height:calc(100dvh - 52px)
+}
 
-    #map { flex: 1; min-width: 0; }
+#map{flex:1;min-width:0}
 
-    .control-panel {
-      width: 380px;
-      padding: 20px;
-      background: #1e293b;
-      overflow: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+.panel{
+  width:380px;
+  padding:18px;
+  background:#1e293b;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  overflow:auto
+}
 
-    .gate-select-group {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
+.row{display:flex;gap:8px}
+.row button{flex:1}
 
-    button {
-      border: 0;
-      border-radius: 8px;
-      padding: 12px;
-      color: white;
-      cursor: pointer;
-      font-size: 15px;
-    }
+button{
+  padding:12px;
+  border:0;
+  border-radius:8px;
+  background:#334155;
+  color:white;
+  font-size:15px;
+  cursor:pointer
+}
 
-    .gate-btn {
-      flex: 1;
-      background: #0f172a;
-      border: 2px solid #334155;
-    }
+button:disabled{
+  opacity:.45;
+  cursor:not-allowed
+}
 
-    .gate-btn.active {
-      border-color: #fbbf24;
-      color: #fbbf24;
-    }
+.gate{
+  background:#0f172a;
+  border:2px solid #334155
+}
 
-    .action-card {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      background: #0f172a;
-      border: 1px solid #334155;
-      padding: 14px;
-      border-radius: 12px;
-    }
+.gate.active{
+  border-color:#fbbf24;
+  color:#fbbf24
+}
 
-    .card-title, label {
-      font-size: 14px;
-      color: #94a3b8;
-    }
+.card{
+  padding:14px;
+  border:1px solid #334155;
+  border-radius:12px;
+  background:#0f172a;
+  display:flex;
+  flex-direction:column;
+  gap:10px
+}
 
-    .result-box {
-      padding: 10px;
-      text-align: center;
-      background: #1e293b;
-      border-radius: 6px;
-      font-weight: bold;
-    }
+.label{font-size:14px;color:#94a3b8}
 
-    .btn-move { background: #2563eb; }
-    .btn-food { background: #d97706; }
+.result{
+  padding:12px;
+  background:#1e293b;
+  border-radius:6px;
+  text-align:center;
+  font-weight:bold
+}
 
-    button:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
+.blue{background:#2563eb}
+.orange{background:#d97706}
+.small{font-size:12px;padding:9px}
 
-    .coord-info {
-      font-size: 13px;
-      color: #38bdf8;
-      line-height: 1.6;
-      overflow-wrap: anywhere;
-    }
+#position{
+  font-size:13px;
+  color:#38bdf8;
+  line-height:1.6;
+  overflow-wrap:anywhere
+}
 
-    .log-section {
-      max-height: 220px;
-      overflow: auto;
-      background: #0f172a;
-      padding: 10px;
-      border-radius: 8px;
-      margin-top: 8px;
-    }
+#logs{
+  max-height:200px;
+  overflow:auto;
+  background:#0f172a;
+  padding:10px;
+  border-radius:8px
+}
 
-    .log-item {
-      padding: 8px 0;
-      border-bottom: 1px solid #334155;
-      font-size: 13px;
-      line-height: 1.6;
-      overflow-wrap: anywhere;
-    }
+.log{
+  font-size:13px;
+  line-height:1.6;
+  padding:7px 0;
+  border-bottom:1px solid #334155
+}
 
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #000b;
-      z-index: 2000;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
+.note{
+  font-size:12px;
+  color:#94a3b8;
+  line-height:1.7;
+  margin:0
+}
 
-    .modal-content {
-      background: #1e293b;
-      border: 2px solid #fbbf24;
-      border-radius: 16px;
-      padding: 24px;
-      max-width: 360px;
-      width: 100%;
-      text-align: center;
-    }
+.dog{
+  font-size:28px;
+  line-height:30px;
+  text-align:center;
+  filter:drop-shadow(0 3px 4px #0008)
+}
 
-    .modal-content p { line-height: 1.8; }
+.modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:#000b;
+  z-index:2000;
+  align-items:center;
+  justify-content:center;
+  padding:20px
+}
 
-    .leaflet-dog-icon {
-      font-size: 28px;
-      text-align: center;
-      line-height: 28px;
-      filter: drop-shadow(0 3px 4px #0008);
-    }
+.modal-box{
+  width:100%;
+  max-width:350px;
+  background:#1e293b;
+  border:2px solid #fbbf24;
+  border-radius:14px;
+  padding:24px;
+  text-align:center
+}
 
-    .note {
-      margin: 0;
-      font-size: 12px;
-      line-height: 1.7;
-      color: #94a3b8;
-    }
+.modal-box p{line-height:1.8}
 
-    @media (max-width: 849px) {
-      .main-container {
-        flex-direction: column;
-        height: auto;
-      }
-
-      #map {
-        flex: none;
-        height: 52dvh;
-        width: 100%;
-      }
-
-      .control-panel {
-        width: 100%;
-        overflow: visible;
-      }
-    }
-  </style>
+@media(max-width:849px){
+  main{height:auto;flex-direction:column}
+  #map{height:52dvh;flex:none;width:100%}
+  .panel{width:100%;overflow:visible}
+}
+</style>
 </head>
 
 <body>
-  <header>
-    <h1>🏫 武陵高中 路口美食輪盤 🐶</h1>
-  </header>
+<header>
+  <h1>🏫 武陵高中 路口美食輪盤 🐶</h1>
+</header>
 
-  <main class="main-container">
-    <div id="map"></div>
+<main>
+  <div id="map"></div>
 
-    <div class="control-panel">
-      <div>
-        <label>起點校門</label>
-        <div class="gate-select-group">
-          <button
-            class="gate-btn active"
-            id="btn-front"
-            onclick="selectGate('front_gate')"
-          >
-            前門（中山路）
-          </button>
+  <div class="panel">
+    <div>
+      <div class="label">起點校門</div>
 
-          <button
-            class="gate-btn"
-            id="btn-back"
-            onclick="selectGate('back_gate')"
-          >
-            後門
-          </button>
-        </div>
-      </div>
-
-      <div class="action-card">
-        <span class="card-title">
-          🧭 抽方向，走到下一個路口停下
-        </span>
-
-        <div class="result-box" id="turn-display">
-          尚未轉向
-        </div>
-
-        <div class="coord-info" id="coord-display">
-          正在載入道路…
-        </div>
+      <div class="row" style="margin-top:8px">
+        <button
+          id="front"
+          class="gate active"
+          onclick="selectGate('front')"
+        >
+          前門・圓環中山路側
+        </button>
 
         <button
-          class="btn-move"
-          id="move-btn"
-          disabled
-          onclick="spinAndMove()"
+          id="back"
+          class="gate"
+          onclick="selectGate('back')"
         >
-          🎲 抽方向並前進
+          後門
         </button>
       </div>
 
-      <div class="action-card">
-        <span class="card-title">
-          🍗 美食輪盤 · 吃的機率 1/3
-        </span>
-
-        <div class="result-box" id="food-display">
-          尚未選擇
-        </div>
+      <div class="row" style="margin-top:8px">
+        <button
+          class="small"
+          onclick="setGateOnMap('front')"
+        >
+          📍 設定前門
+        </button>
 
         <button
-          class="btn-food"
-          id="food-btn"
-          disabled
-          onclick="spinFood()"
+          class="small"
+          onclick="setGateOnMap('back')"
         >
-          🍟 轉美食輪盤
+          📍 設定後門
         </button>
       </div>
+    </div>
 
-      <div>
-        <label>📍 探索紀錄</label>
-        <div
-          class="log-section"
-          id="log-list"
-          aria-live="polite"
-        ></div>
+    <div class="card">
+      <div class="label">
+        🧭 一次走到下一個路口，不迴轉
       </div>
 
-      <button class="gate-btn" onclick="resetGame()">
-        🔄 重置冒險／重試載入
-      </button>
+      <div class="result" id="direction">
+        尚未轉向
+      </div>
 
-      <p class="note">
-        校內道路不列入。前門出去右轉可以沿中山路走，
-        但右側路段的中山路對側不列入；其他方向保留。
-        範圍依 OSM 校地及道路資料判定。
-        黃點表示可行道路中的岔路，包含巷口與步道交會處。
-        需連網使用；美食輪盤尚未搜尋實際店家。
-      </p>
-    </div>
-  </main>
+      <div id="position">
+        準備載入道路…
+      </div>
 
-  <div
-    class="modal"
-    id="victory-modal"
-    role="dialog"
-    aria-modal="true"
-    aria-label="美食輪盤結果"
-  >
-    <div class="modal-content">
-      <h2>🎉 在附近找美食！</h2>
-      <p id="victory-desc"></p>
-      <button class="btn-food" onclick="closeModal()">
-        準備開吃 😋
+      <button
+        id="move"
+        class="blue"
+        disabled
+        onclick="spinMove()"
+      >
+        🎲 抽方向並前進
       </button>
     </div>
+
+    <div class="card">
+      <div class="label">
+        🍗 美食輪盤・吃的機率 1/3
+      </div>
+
+      <div class="result" id="foodResult">
+        尚未選擇
+      </div>
+
+      <button
+        id="food"
+        class="orange"
+        disabled
+        onclick="spinFood()"
+      >
+        🍟 轉美食輪盤
+      </button>
+    </div>
+
+    <div>
+      <div class="label">📍 探索紀錄</div>
+      <div id="logs" aria-live="polite"></div>
+    </div>
+
+    <button onclick="resetGame()">
+      🔄 重置／重試載入
+    </button>
+
+    <div class="row">
+      <button
+        class="small"
+        onclick="document.getElementById('roadFile').click()"
+      >
+        📂 匯入道路
+      </button>
+
+      <button class="small" onclick="backupRoads()">
+        💾 備份道路
+      </button>
+    </div>
+
+    <input
+      id="roadFile"
+      type="file"
+      accept=".json,.osm,.xml"
+      hidden
+    >
+
+    <p class="note">
+      版本 6。校內道路排除，同一路口附近的岔路合併；
+      禁止原路迴轉。前門右側中山路可沿路走，對側不列入。
+      校門及限制依 OSM 圖資判定，可按「設定」後點地圖校正。
+      道路備份檔 wuling-roads.json 可與本頁放在 GitHub 同一資料夾。
+      地圖底圖與首次下載仍需網路。
+    </p>
   </div>
+</main>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div
+  class="modal"
+  id="modal"
+  role="dialog"
+  aria-modal="true"
+  aria-label="美食輪盤結果"
+>
+  <div class="modal-box">
+    <h2>🎉 在附近找美食！</h2>
+    <p id="foodDescription"></p>
 
-  <script>
-    'use strict';
+    <button class="orange" onclick="closeModal()">
+      準備開吃 😋
+    </button>
+  </div>
+</div>
 
-    // 沿用原程式的校門座標。
-    const GATES = {
-      front_gate: {
-        name: '武陵高中前門',
-        coords: [24.9877, 121.2862]
-      },
-      back_gate: {
-        name: '武陵高中後門',
-        coords: [24.9902, 121.2835]
-      }
-    };
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    const ROAD_SERVERS = [
-      'https://overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter',
-      'https://overpass.private.coffee/api/interpreter'
+<script>
+'use strict';
+
+const $ = id => document.getElementById(id);
+
+const CACHE_KEY = 'wuling-roads-v6';
+const GATE_KEY = 'wuling-gates-v6';
+
+// 同一道路上很接近的岔路，合併成一個路口。
+const MERGE_DISTANCE = 25;
+
+const ROAD_SERVERS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter'
+];
+
+const gates = {
+  front: {
+    name: '前門・圓環中山路側',
+    coords: null
+  },
+  back: {
+    name: '後門',
+    // 原先誤標成前門的位置，依你的說明改為後門。
+    coords: [24.9877, 121.2862]
+  }
+};
+
+try {
+  const saved = JSON.parse(
+    localStorage.getItem(GATE_KEY) || '{}'
+  );
+
+  for (const key of ['front', 'back']) {
+    if (
+      Array.isArray(saved[key]) &&
+      saved[key].length === 2 &&
+      saved[key].every(Number.isFinite)
+    ) {
+      gates[key].coords = saved[key];
+    }
+  }
+} catch (_) {}
+
+let map;
+let dog;
+let trail;
+let pointLayer;
+let campusLayer;
+let gateLayer;
+let foodLayer;
+
+let rawData = null;
+let streets = new Map();
+let graph = new Map();
+let startRoutes = [];
+
+let selectedGate = 'front';
+let settingGate = null;
+let currentId;
+let previousEdge = null;
+
+let arrived = false;
+let steps = 0;
+let history = [];
+let phase = 'loading';
+
+let version = 0;
+let animationFrame = 0;
+let spinTimer = 0;
+let requestController;
+
+function log(text) {
+  const item = document.createElement('div');
+  item.className = 'log';
+  item.textContent = text;
+  $('logs').prepend(item);
+}
+
+function state(value) {
+  phase = value;
+  $('move').disabled = value !== 'idle';
+  $('food').disabled = value !== 'idle';
+}
+
+function cancel() {
+  version++;
+  clearTimeout(spinTimer);
+  cancelAnimationFrame(animationFrame);
+
+  requestController?.abort();
+  requestController = undefined;
+}
+
+function meters(a, b) {
+  const r = Math.PI / 180;
+
+  return 6371000 * Math.hypot(
+    (b[0] - a[0]) * r,
+    (b[1] - a[1]) * r *
+      Math.cos((a[0] + b[0]) / 2 * r)
+  );
+}
+
+function pathLength(points) {
+  let total = 0;
+
+  for (let i = 1; i < points.length; i++) {
+    total += meters(points[i - 1], points[i]);
+  }
+
+  return total;
+}
+
+function xy(p) {
+  return [
+    (p[1] - 121.285) * 100800,
+    (p[0] - 24.989) * 111200
+  ];
+}
+
+function cross(a, b, p) {
+  return (
+    (b[0] - a[0]) * (p[1] - a[1]) -
+    (b[1] - a[1]) * (p[0] - a[0])
+  );
+}
+
+function crosses(a, b, c, d) {
+  return (
+    cross(a, b, c) * cross(a, b, d) < 0 &&
+    cross(c, d, a) * cross(c, d, b) < 0
+  );
+}
+
+function inside(p, ring) {
+  let yes = false;
+
+  for (
+    let i = 0, j = ring.length - 1;
+    i < ring.length;
+    j = i++
+  ) {
+    const a = ring[i];
+    const b = ring[j];
+
+    if (
+      (a[0] > p[0]) !== (b[0] > p[0]) &&
+      p[1] <
+        (b[1] - a[1]) *
+        (p[0] - a[0]) /
+        (b[0] - a[0]) +
+        a[1]
+    ) {
+      yes = !yes;
+    }
+  }
+
+  return yes;
+}
+
+function nearestSegment(p, segments) {
+  const q = xy(p);
+  let best;
+
+  for (const [a, b] of segments) {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const squared = dx * dx + dy * dy;
+
+    if (!squared) continue;
+
+    const t = Math.max(
+      0,
+      Math.min(
+        1,
+        (
+          (q[0] - a[0]) * dx +
+          (q[1] - a[1]) * dy
+        ) / squared
+      )
+    );
+
+    const foot = [
+      a[0] + t * dx,
+      a[1] + t * dy
     ];
 
-    let selectedGate = 'front_gate';
-    let currentId;
-    let previousId;
-    let stepCount = 0;
+    const distance = Math.hypot(
+      q[0] - foot[0],
+      q[1] - foot[1]
+    );
 
-    let map;
-    let dogMarker;
-    let pathPolyline;
-    let junctionMarkers;
-    let foodMarkers;
-    let campusLayer;
-
-    let graph = new Map();
-    let pathCoords = [];
-
-    let phase = 'loading';
-    let generation = 0;
-    let frame = 0;
-    let spinTimer = 0;
-    let controller;
-
-    const $ = id => document.getElementById(id);
-
-    function distance(a, b) {
-      const rad = Math.PI / 180;
-      const y = (b[0] - a[0]) * rad;
-      const x = (b[1] - a[1]) * rad *
-        Math.cos((a[0] + b[0]) / 2 * rad);
-
-      return Math.hypot(x, y) * 6371000;
+    if (!best || distance < best.distance) {
+      best = {
+        a,
+        b,
+        foot,
+        distance,
+        length: Math.sqrt(squared)
+      };
     }
+  }
 
-    // 將附近經緯度轉成公尺座標，方便判斷方向及交叉。
-    function xy(point) {
-      return [
-        (point[1] - 121.285) * 100800,
-        (point[0] - 24.989) * 111200
-      ];
-    }
+  return best;
+}
 
-    function cross(a, b, p) {
-      return (
-        (b[0] - a[0]) * (p[1] - a[1]) -
-        (b[1] - a[1]) * (p[0] - a[0])
-      );
-    }
-
-    function crossing(a, b, c, d) {
-      return (
-        cross(a, b, c) * cross(a, b, d) < 0 &&
-        cross(c, d, a) * cross(c, d, b) < 0
-      );
-    }
-
-    function pointInside(point, ring) {
-      let inside = false;
-
-      for (
-        let i = 0, j = ring.length - 1;
-        i < ring.length;
-        j = i++
-      ) {
-        const a = ring[i];
-        const b = ring[j];
-
-        const straddles =
-          (a[0] > point[0]) !== (b[0] > point[0]);
-
-        if (
-          straddles &&
-          point[1] <
-            (b[1] - a[1]) *
-            (point[0] - a[0]) /
-            (b[0] - a[0]) +
-            a[1]
-        ) {
-          inside = !inside;
-        }
-      }
-
-      return inside;
-    }
-
-    // 取得學校範圍，支援 OSM way 與 multipolygon relation。
-    function schoolRings(data) {
-      const nodes = new Map(
-        data.elements
-          .filter(e => e.type === 'node')
-          .map(e => [e.id, [e.lat, e.lon]])
-      );
-
-      const ways = new Map(
-        data.elements
-          .filter(e => e.type === 'way')
-          .map(e => [e.id, e])
-      );
-
-      const isSchool = e =>
-        e.tags?.amenity === 'school' &&
-        /武陵/.test(e.tags?.name || '');
-
-      const rings = [];
-
-      function addRing(ids) {
-        if (
-          ids.length < 4 ||
-          ids[0] !== ids[ids.length - 1]
-        ) {
-          return;
-        }
-
-        const points = ids.map(id => nodes.get(id));
-
-        if (points.every(Boolean)) {
-          rings.push(points);
-        }
-      }
-
-      for (const way of ways.values()) {
-        if (isSchool(way)) {
-          addRing(way.nodes || []);
-        }
-      }
-
-      for (const relation of data.elements) {
-        if (
-          relation.type !== 'relation' ||
-          !isSchool(relation)
-        ) {
-          continue;
-        }
-
-        const parts = (relation.members || [])
-          .filter(member =>
-            member.type === 'way' &&
-            (!member.role || member.role === 'outer')
-          )
-          .map(member =>
-            ways.get(member.ref)?.nodes?.slice()
-          )
-          .filter(Boolean);
-
-        while (parts.length) {
-          const chain = parts.pop();
-
-          while (
-            chain[0] !== chain[chain.length - 1]
-          ) {
-            const end = chain[chain.length - 1];
-
-            const index = parts.findIndex(part =>
-              part[0] === end ||
-              part[part.length - 1] === end
-            );
-
-            if (index < 0) break;
-
-            let part = parts.splice(index, 1)[0];
-
-            if (part[0] !== end) {
-              part.reverse();
-            }
-
-            chain.push(...part.slice(1));
-          }
-
-          addRing(chain);
-        }
-      }
-
-      return rings;
-    }
-
-    function closestRoad(point, segments) {
-      const p = xy(point);
-      let best;
-
-      for (const [a, b] of segments) {
-        const dx = b[0] - a[0];
-        const dy = b[1] - a[1];
-        const lengthSquared = dx * dx + dy * dy;
-
-        if (!lengthSquared) continue;
-
-        const t = Math.max(
-          0,
-          Math.min(
-            1,
-            (
-              (p[0] - a[0]) * dx +
-              (p[1] - a[1]) * dy
-            ) / lengthSquared
-          )
-        );
-
-        const foot = [
-          a[0] + t * dx,
-          a[1] + t * dy
-        ];
-
-        const dist = Math.hypot(
-          p[0] - foot[0],
-          p[1] - foot[1]
-        );
-
-        if (!best || dist < best.dist) {
-          best = {
-            a,
-            b,
-            foot,
-            dist,
-            len: Math.sqrt(lengthSquared)
-          };
-        }
-      }
-
-      return best;
-    }
-
-    function buildGraph(data) {
-      const rings = schoolRings(data);
-
-      if (!rings.length) {
-        throw new Error(
-          '找不到武陵高中校地邊界，無法套用校內排除規則'
-        );
-      }
-
-      const network = new Map();
-
-      for (const element of data.elements) {
-        if (element.type !== 'node') continue;
-
-        network.set(element.id, {
-          id: element.id,
-          coords: [element.lat, element.lon],
-          edges: new Map()
-        });
-      }
-
-      const roadWays = data.elements.filter(element =>
-        element.type === 'way' &&
-        element.tags?.highway &&
-        element.nodes
-      );
-
-      for (const way of roadWays) {
-        for (let i = 1; i < way.nodes.length; i++) {
-          const a = network.get(way.nodes[i - 1]);
-          const b = network.get(way.nodes[i]);
-
-          if (!a || !b || a.id === b.id) continue;
-
-          const name = way.tags.name || '未命名道路';
-
-          // 使用共同 OSM 節點判斷連通。
-          // 立體交叉但沒有共同節點的道路，不視為路口。
-          a.edges.set(b.id, name);
-          b.edges.set(a.id, name);
-        }
-      }
-
-      for (const [id, node] of network) {
-        if (!node.edges.size) {
-          network.delete(id);
-        }
-      }
-
-      const zhongshanSegments = [];
-
-      for (const way of roadWays) {
-        if (!/中山路/.test(way.tags.name || '')) {
-          continue;
-        }
-
-        for (let i = 1; i < way.nodes.length; i++) {
-          const a = network.get(way.nodes[i - 1]);
-          const b = network.get(way.nodes[i]);
-
-          if (a && b) {
-            zhongshanSegments.push([
-              xy(a.coords),
-              xy(b.coords)
-            ]);
-          }
-        }
-      }
-
-      const mainRing = rings.reduce((a, b) =>
-        a.length > b.length ? a : b
-      );
-
-      const boundaryPoints = mainRing.slice(0, -1);
-
-      const schoolCenterCoords = [0, 1].map(index =>
-        boundaryPoints.reduce(
-          (sum, point) => sum + point[index],
-          0
-        ) / boundaryPoints.length
-      );
-
-      const schoolCenter = xy(schoolCenterCoords);
-
-      const frontRoad = closestRoad(
-        GATES.front_gate.coords,
-        zhongshanSegments
-      );
-
-      if (!frontRoad || frontRoad.dist > 250) {
-        throw new Error(
-          '前門附近找不到中山路，請確認校門座標或 OSM 圖資'
-        );
-      }
-
-      // 用校地中央往前門旁中山路的方向，
-      // 判定「面向校外」及其右手方向。
-      const outward = [
-        frontRoad.foot[0] - schoolCenter[0],
-        frontRoad.foot[1] - schoolCenter[1]
-      ];
-
-      const outwardLength = Math.hypot(...outward);
-
-      if (outwardLength < 1) {
-        throw new Error('無法判定前門出校方向');
-      }
-
-      const right = [
-        outward[1] / outwardLength,
-        -outward[0] / outwardLength
-      ];
-
-      function rightward(pointXY) {
-        return (
-          (pointXY[0] - frontRoad.foot[0]) * right[0] +
-          (pointXY[1] - frontRoad.foot[1]) * right[1]
-        );
-      }
-
-      function inSchool(point) {
-        return rings.some(ring =>
-          pointInside(point, ring)
-        );
-      }
-
-      function forbiddenOppositeSide(point) {
-        const p = xy(point);
-
-        // 前門左側的其他方向保留。
-        if (rightward(p) <= 0) return false;
-
-        const road = closestRoad(
-          point,
-          zhongshanSegments
-        );
-
-        if (!road) return false;
-
-        const signedDistance =
-          cross(road.a, road.b, p) / road.len;
-
-        const schoolSide =
-          cross(road.a, road.b, schoolCenter) /
-          road.len;
-
-        // 中山路中心線保留，允許沿中山路走。
-        // 一公尺容差避免浮點及圖資誤差。
-        return (
-          Math.abs(signedDistance) > 1 &&
-          signedDistance * schoolSide < 0
-        );
-      }
-
-      // 排除校內節點及前門右側中山路對岸節點。
-      for (const [id, node] of network) {
-        if (
-          inSchool(node.coords) ||
-          forbiddenOppositeSide(node.coords)
-        ) {
-          network.delete(id);
-        }
-      }
-
-      // 排除穿越校地或跨越右側中山路的連線。
-      for (const node of network.values()) {
-        for (const nextId of node.edges.keys()) {
-          const target = network.get(nextId);
-
-          if (!target) {
-            node.edges.delete(nextId);
-            continue;
-          }
-
-          const a = xy(node.coords);
-          const b = xy(target.coords);
-
-          const throughSchool = rings.some(ring =>
-            ring.slice(1).some((point, index) =>
-              crossing(
-                a,
-                b,
-                xy(ring[index]),
-                xy(point)
-              )
-            )
-          );
-
-          const acrossRightRoad =
-            zhongshanSegments.some(([c, d]) => {
-              if (!crossing(a, b, c, d)) {
-                return false;
-              }
-
-              const midpoint = [
-                (a[0] + b[0]) / 2,
-                (a[1] + b[1]) / 2
-              ];
-
-              return rightward(midpoint) > 0;
-            });
-
-          if (throughSchool || acrossRightRoad) {
-            node.edges.delete(nextId);
-          }
-        }
-      }
-
-      for (const [id, node] of network) {
-        if (!node.edges.size) {
-          network.delete(id);
-        }
-      }
-
-      return { network, rings };
-    }
-
-    // 一次只找到下一個岔路或道路終點。
-    function routesFrom(id) {
-      const start = graph.get(id);
-
-      if (!start) return [];
-
-      return [...start.edges].map(([neighbor, road]) => {
-        let previous = id;
-        let next = neighbor;
-
-        const ids = [id];
-        const seen = new Set([id]);
-
-        while (!seen.has(next)) {
-          seen.add(next);
-          ids.push(next);
-
-          const node = graph.get(next);
-
-          if (!node) return null;
-
-          // 度數 2 是道路中間點；其他度數要停下。
-          if (node.edges.size !== 2) break;
-
-          const onward = [...node.edges.keys()]
-            .find(value => value !== previous);
-
-          previous = next;
-          next = onward;
-
-          if (seen.has(next)) return null;
-        }
-
-        return {
-          ids,
-          road,
-          end: ids[ids.length - 1],
-          coords: ids.map(value =>
-            graph.get(value).coords
-          )
-        };
-      }).filter(route =>
-        route && route.end !== id
-      );
-    }
-
-    function setPhase(value) {
-      phase = value;
-
-      $('move-btn').disabled = value !== 'idle';
-      $('food-btn').disabled = value !== 'idle';
-    }
-
-    function cancelWork() {
-      generation++;
-
-      cancelAnimationFrame(frame);
-      clearTimeout(spinTimer);
-
-      controller?.abort();
-      controller = undefined;
-    }
-
-    function addLog(message) {
-      const item = document.createElement('div');
-
-      item.className = 'log-item';
-      item.textContent = message;
-
-      $('log-list').prepend(item);
-    }
-
-    function updateCoordDisplay() {
-      const node = graph.get(currentId);
-
-      if (!node) return;
-
-      const roads = [...new Set(node.edges.values())]
-        .join(' / ');
-
-      const coordinates = node.coords
-        .map(value => value.toFixed(5))
-        .join(', ');
-
-      $('coord-display').textContent =
-        `📍 ${roads} [${coordinates}]`;
-    }
-
-    async function loadRoads(token) {
-      // 同時載入周邊道路及武陵高中校地範圍。
-      const query = `
-        [out:json][timeout:25];
-        (
-          way
-            ["highway"~"^(trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|footway|path|steps|road)(_link)?$"]
-            ["area"!="yes"]
-            ["access"!~"^(private|no)$"]
-            ["foot"!="no"]
-            (around:1500,24.989,121.285);
-
-          nwr
-            ["amenity"="school"]
-            ["name"~"武陵"]
-            (around:1500,24.989,121.285);
-        );
-        (._;>;);
-        out body;
-      `;
-
-      const errors = [];
-
-      for (let i = 0; i < ROAD_SERVERS.length; i++) {
-        if (token !== generation) return;
-
-        $('coord-display').textContent =
-          '正在載入道路與校地邊界…' +
-          `（伺服器 ${i + 1}/${ROAD_SERVERS.length}）`;
-
-        const requestController =
-          new AbortController();
-
-        controller = requestController;
-
-        const timeoutId = setTimeout(
-          () => requestController.abort(),
-          30000
-        );
-
-        let data;
-
-        try {
-          const url =
-            ROAD_SERVERS[i] +
-            '?data=' +
-            encodeURIComponent(query);
-
-          const response = await fetch(url, {
-            method: 'GET',
-            signal: requestController.signal
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-
-          const result = await response.json();
-
-          if (token !== generation) return;
-
-          if (
-            result.remark ||
-            !Array.isArray(result.elements)
-          ) {
-            throw new Error('道路或校地資料不完整');
-          }
-
-          data = result;
-        } catch (error) {
-          if (token !== generation) return;
-
-          const reason =
-            error.name === 'AbortError'
-              ? '連線逾時'
-              : error instanceof TypeError
-                ? '網路或瀏覽器阻擋連線'
-                : error.message;
-
-          errors.push(
-            `伺服器 ${i + 1}：${reason}`
-          );
-
-          addLog(
-            `⚠️ ${errors[errors.length - 1]}`
-          );
-        } finally {
-          clearTimeout(timeoutId);
-
-          if (controller === requestController) {
-            controller = undefined;
-          }
-        }
-
-        if (!data) continue;
-        if (token !== generation) return;
-
-        const built = buildGraph(data);
-
-        if (!built.network.size) {
-          throw new Error(
-            '限制範圍內沒有可行道路'
-          );
-        }
-
-        graph = built.network;
-
-        junctionMarkers.clearLayers();
-        campusLayer.clearLayers();
-
-        // 顯示排除的校地範圍。
-        for (const ring of built.rings) {
-          L.polygon(ring, {
-            color: '#ef4444',
-            weight: 1,
-            fillOpacity: 0.08,
-            interactive: false
-          }).addTo(campusLayer);
-        }
-
-        for (const node of graph.values()) {
-          if (node.edges.size >= 3) {
-            L.circleMarker(node.coords, {
-              radius: 4,
-              color: '#fbbf24',
-              fillColor: '#fbbf24',
-              fillOpacity: 0.8
-            }).addTo(junctionMarkers);
-          }
-        }
-
-        startAtGate();
-
-        addLog(
-          '✅ 已排除校內道路；前門右側中山路可走，' +
-          '對側禁止進入。'
-        );
-
-        return;
-      }
-
-      throw new Error(
-        '道路服務皆無法連線。' +
-        errors.join('；')
-      );
-    }
-
-    function startAtGate() {
-      const gate = GATES[selectedGate];
-
-      let nearest;
-      let best = Infinity;
-
-      // 校內節點已經排除，只能對齊校外可行道路。
-      for (const node of graph.values()) {
-        if (!routesFrom(node.id).length) continue;
-
-        const d = distance(
-          gate.coords,
-          node.coords
-        );
-
-        if (d < best) {
-          best = d;
-          nearest = node;
-        }
-      }
-
-      if (!nearest || best > 200) {
-        throw new Error(
-          '校門附近找不到符合限制的校外道路，' +
-          '請確認 GATES 的校門座標'
-        );
-      }
-
-      currentId = nearest.id;
-      previousId = undefined;
-      stepCount = 0;
-
-      pathCoords = [nearest.coords];
-
-      pathPolyline.setLatLngs(pathCoords);
-      dogMarker.setLatLng(nearest.coords);
-      map.setView(nearest.coords, 17);
-
-      updateCoordDisplay();
-      setPhase('idle');
-
-      addLog(
-        `${gate.name}出發：已對齊校外道路` +
-        `（距提供座標約 ${Math.round(best)} 公尺）。`
-      );
-    }
-
-    async function resetGame() {
-      if (!map) return;
-
-      cancelWork();
-
-      const token = generation;
-
-      setPhase('loading');
-
-      stepCount = 0;
-      currentId = undefined;
-      previousId = undefined;
-      pathCoords = [];
-
-      $('victory-modal').style.display = 'none';
-      foodMarkers.clearLayers();
-
-      $('turn-display').textContent = '尚未轉向';
-      $('food-display').textContent = '尚未選擇';
-      $('log-list').replaceChildren();
-
-      $('coord-display').textContent =
-        '正在準備校外道路…';
-
-      pathPolyline.setLatLngs([]);
-
-      const gate = GATES[selectedGate];
-
-      dogMarker.setLatLng(gate.coords);
-      map.setView(gate.coords, 17);
-
-      try {
-        if (graph.size) {
-          startAtGate();
-
-          addLog(
-            '✅ 校內道路排除；前門右側中山路對側排除。'
-          );
-        } else {
-          await loadRoads(token);
-        }
-      } catch (error) {
-        if (token !== generation) return;
-
-        setPhase('error');
-
-        $('coord-display').textContent =
-          '無法開始導航，請查看下方探索紀錄。';
-
-        addLog(
-          `❌ ${error.message}。` +
-          '請確認網路後按「重置冒險／重試載入」。'
-        );
-      }
-    }
-
-    function selectGate(key) {
-      if (!GATES[key] || !map) return;
-
-      const adventureStarted =
-        stepCount > 0 ||
-        ['moving', 'spinning', 'food', 'finished']
-          .includes(phase);
-
-      if (
-        adventureStarted &&
-        !confirm('更換校門會重置冒險，是否繼續？')
-      ) {
-        return;
-      }
-
-      selectedGate = key;
-
-      $('btn-front').classList.toggle(
-        'active',
-        key === 'front_gate'
-      );
-
-      $('btn-back').classList.toggle(
-        'active',
-        key === 'back_gate'
-      );
-
-      resetGame();
-    }
-
-    function bearing(a, b) {
-      return Math.atan2(
-        (b[1] - a[1]) *
-          Math.cos(a[0] * Math.PI / 180),
-        b[0] - a[0]
-      ) * 180 / Math.PI;
-    }
-
-    function labelRoute(route) {
-      const start = route.coords[0];
-
-      const angle = bearing(
-        start,
-        route.coords[1]
-      );
-
-      if (previousId === undefined) {
-        const direction = ['北', '東', '南', '西'][
-          Math.round((angle + 360) / 90) % 4
-        ];
-
-        return `${direction}向 · ${route.road}`;
-      }
-
-      const incoming = bearing(
-        graph.get(previousId).coords,
-        start
-      );
-
-      const change =
-        ((angle - incoming + 540) % 360) - 180;
-
-      let direction;
-
-      if (Math.abs(change) > 150) {
-        direction = '迴轉';
-      } else if (Math.abs(change) < 35) {
-        direction = '直行';
-      } else {
-        direction =
-          change > 0 ? '右轉' : '左轉';
-      }
-
-      return `${direction} · ${route.road}`;
-    }
-
-    function roulette(draw, done, count = 11) {
-      const token = generation;
-
-      function tick(n) {
-        if (token !== generation) return;
-
-        draw();
-
-        if (n >= count) {
-          done();
-        } else {
-          spinTimer = setTimeout(
-            () => tick(n + 1),
-            80
-          );
-        }
-      }
-
-      tick(0);
-    }
-
-    function spinAndMove() {
-      if (phase !== 'idle') return;
-
-      let routes = routesFrom(currentId);
-
-      // 有其他出口時避免立即原路返回。
-      // 死巷仍可迴轉。
-      const onward = routes.filter(
-        route => route.ids[1] !== previousId
-      );
-
-      if (onward.length) {
-        routes = onward;
-      }
-
-      if (!routes.length) {
-        addLog(
-          '目前限制範圍內沒有下一條道路，請重置冒險。'
-        );
-        return;
-      }
-
-      setPhase('spinning');
-
-      const pick = () => routes[
-        Math.floor(
-          Math.random() * routes.length
-        )
-      ];
-
-      roulette(
-        () => {
-          $('turn-display').textContent =
-            `🧭 ${labelRoute(pick())}`;
-        },
-        () => {
-          const route = pick();
-          const label = labelRoute(route);
-
-          $('turn-display').textContent =
-            `🧭 ${label}`;
-
-          animateRoute(route, label);
-        }
-      );
-    }
-
-    function animateRoute(route, label) {
-      setPhase('moving');
-
-      const token = generation;
-      const lengths = [0];
-
-      for (let i = 1; i < route.coords.length; i++) {
-        lengths.push(
-          lengths[i - 1] +
-          distance(
-            route.coords[i - 1],
-            route.coords[i]
-          )
-        );
-      }
-
-      const total =
-        lengths[lengths.length - 1];
-
-      const duration = Math.max(
-        700,
-        Math.min(6000, total * 10)
-      );
-
-      let started;
-
-      function draw(time) {
-        if (token !== generation) return;
-
-        started ??= time;
-
-        const progress = Math.min(
-          1,
-          (time - started) / duration
-        );
-
-        const traveled = total * progress;
-
-        let i = 1;
-
-        while (
-          i < lengths.length - 1 &&
-          lengths[i] < traveled
-        ) {
-          i++;
-        }
-
-        const fraction =
-          (traveled - lengths[i - 1]) /
-          (
-            lengths[i] -
-            lengths[i - 1] ||
-            1
-          );
-
-        const a = route.coords[i - 1];
-        const b = route.coords[i];
-
-        // 沿相鄰道路節點移動，不跨街區直線飛行。
-        const point = [
-          a[0] + (b[0] - a[0]) * fraction,
-          a[1] + (b[1] - a[1]) * fraction
-        ];
-
-        dogMarker.setLatLng(point);
-
-        pathPolyline.setLatLngs([
-          ...pathCoords,
-          ...route.coords.slice(1, i),
-          point
-        ]);
-
-        if (progress < 1) {
-          frame = requestAnimationFrame(draw);
-          return;
-        }
-
-        previousId =
-          route.ids[route.ids.length - 2];
-
-        currentId = route.end;
-
-        pathCoords.push(
-          ...route.coords.slice(1)
-        );
-
-        pathPolyline.setLatLngs(pathCoords);
-
-        const node = graph.get(currentId);
-
-        dogMarker.setLatLng(node.coords);
-        map.panTo(node.coords);
-
-        stepCount++;
-        updateCoordDisplay();
-
-        const destination =
-          node.edges.size >= 3
-            ? '路口'
-            : '道路終點／限制邊界';
-
-        addLog(
-          `第 ${stepCount} 步：${label}，` +
-          `抵達${destination}，等待下一次輪盤。`
-        );
-
-        // 每次只走到下一個路口，之後停下。
-        setPhase('idle');
-      }
-
-      frame = requestAnimationFrame(draw);
-    }
-
-    function spinFood() {
-      if (phase !== 'idle') return;
-
-      setPhase('food');
-
-      roulette(
-        () => {
-          $('food-display').textContent =
-            Math.random() < 1 / 3
-              ? '🎉 吃！'
-              : '❌ 不吃';
-        },
-        () => {
-          const shouldEat =
-            Math.floor(Math.random() * 3) === 0;
-
-          if (!shouldEat) {
-            $('food-display').textContent =
-              '❌ 不吃，繼續走';
-
-            addLog(
-              '🍔 不吃，等你轉下一次方向輪盤。'
-            );
-
-            setPhase('idle');
-            return;
-          }
-
-          const node = graph.get(currentId);
-
-          $('food-display').textContent =
-            '🎉 在附近找美食！';
-
-          setPhase('finished');
-
-          L.marker(node.coords, {
-            icon: L.divIcon({
-              className: 'leaflet-dog-icon',
-              html: '🍕',
-              iconSize: [28, 28],
-              iconAnchor: [14, 14]
-            })
-          }).addTo(foodMarkers);
-
-          const coordinates = node.coords
-            .map(value => value.toFixed(5))
-            .join(', ');
-
-          $('victory-desc').textContent =
-            `經過 ${stepCount} 段道路後，` +
-            '決定在目前位置附近找美食！' +
-            `座標：${coordinates}。` +
-            '（尚未搜尋實際店家）';
-
-          $('victory-modal').style.display =
-            'flex';
-
-          addLog(
-            '🍔 決定在附近用餐；可重置開始新冒險。'
-          );
-        },
-        12
-      );
-    }
-
-    function closeModal() {
-      $('victory-modal').style.display = 'none';
-    }
-
-    function initMap() {
-      if (typeof L === 'undefined') {
-        $('coord-display').textContent =
-          '地圖元件載入失敗，請檢查網路後重新整理。';
-
-        addLog(
-          '請使用 Chrome 或 Safari 開啟，' +
-          '並確認可以連線到 unpkg.com。'
-        );
-
-        return;
-      }
-
-      map = L.map('map').setView(
-        GATES[selectedGate].coords,
-        17
-      );
-
-      L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-          maxZoom: 19,
-          attribution:
-            '© OpenStreetMap contributors'
-        }
-      ).addTo(map);
-
-      campusLayer = L.layerGroup().addTo(map);
-      junctionMarkers = L.layerGroup().addTo(map);
-      foodMarkers = L.layerGroup().addTo(map);
-
-      dogMarker = L.marker(
-        GATES[selectedGate].coords,
-        {
-          icon: L.divIcon({
-            className: 'leaflet-dog-icon',
-            html: '🐶',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
-          }),
-          zIndexOffset: 1000
-        }
-      ).addTo(map);
-
-      pathPolyline = L.polyline([], {
-        color: '#3b82f6',
-        weight: 5,
-        opacity: 0.85
-      }).addTo(map);
-
-      window.addEventListener(
-        'resize',
-        () => map.invalidateSize()
-      );
-
-      resetGame();
-    }
-
-    window.addEventListener('load', initMap);
-  // ===== 道路資料快取、主站下載、匯入與備份 =====
-
-const ROAD_CACHE_KEY = 'wuling-road-data-v4';
-const oldLoadData = loadData;
-
-// 武陵高中周邊資料範圍
-const LOCAL_BBOX = '121.276,24.982,121.294,24.999';
-
-function validRoadData(data) {
-  if (!Array.isArray(data?.elements)) return false;
-
+function validData(data) {
   return (
+    Array.isArray(data?.elements) &&
     data.elements.some(e => e.type === 'node') &&
     data.elements.some(
       e => e.type === 'way' && e.tags?.highway
@@ -1501,71 +535,43 @@ function validRoadData(data) {
   );
 }
 
-function cacheRoadData(data) {
-  if (!validRoadData(data)) {
-    throw new Error('檔案缺少道路或武陵高中校地資料');
-  }
-
-  try {
-    localStorage.setItem(
-      ROAD_CACHE_KEY,
-      JSON.stringify(data)
-    );
-
-    log('✅ 道路資料已儲存在這個瀏覽器。');
-  } catch (_) {
-    log(
-      '⚠️ 瀏覽器無法儲存這份資料，' +
-      '請按「備份道路」下載保存。'
-    );
-  }
-}
-
-function parseOsmFile(text) {
-  // 支援道路 JSON 備份
+function parseData(text) {
   if (text.trim().startsWith('{')) {
-    const result = JSON.parse(text);
+    const data = JSON.parse(text);
 
-    if (!validRoadData(result)) {
-      throw new Error('JSON 缺少道路或校地資料');
+    if (data.remark || !validData(data)) {
+      throw new Error('缺少武陵高中校地或道路資料');
     }
 
-    return result;
+    return data;
   }
 
-  // 支援 OpenStreetMap XML
-  const doc = new DOMParser().parseFromString(
+  const xml = new DOMParser().parseFromString(
     text,
     'application/xml'
   );
 
   if (
-    doc.querySelector('parsererror') ||
-    doc.documentElement.localName !== 'osm'
+    xml.querySelector('parsererror') ||
+    xml.documentElement.localName !== 'osm'
   ) {
-    throw new Error('不是有效的 OSM XML 或 JSON 檔案');
-  }
-
-  function tagsOf(element) {
-    return Object.fromEntries(
-      [...element.children]
-        .filter(e => e.localName === 'tag')
-        .map(e => [
-          e.getAttribute('k'),
-          e.getAttribute('v')
-        ])
-    );
+    throw new Error('不是有效的道路 JSON 或 OSM XML');
   }
 
   const elements = [];
 
-  const allowedRoads =
-    /^(trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|footway|path|steps|road)(_link)?$/;
-
-  for (const element of doc.documentElement.children) {
+  for (const element of xml.documentElement.children) {
     const type = element.localName;
     const id = Number(element.getAttribute('id'));
-    const tags = tagsOf(element);
+
+    const tags = Object.fromEntries(
+      [...element.children]
+        .filter(t => t.localName === 'tag')
+        .map(t => [
+          t.getAttribute('k'),
+          t.getAttribute('v')
+        ])
+    );
 
     if (type === 'node') {
       elements.push({
@@ -1578,26 +584,13 @@ function parseOsmFile(text) {
     }
 
     if (type === 'way') {
-      const walkable =
-        allowedRoads.test(tags.highway || '') &&
-        tags.area !== 'yes' &&
-        !['private', 'no'].includes(tags.access) &&
-        tags.foot !== 'no';
-
-      const keptTags = { ...tags };
-
-      // 保留校地外框，但不把外框當成道路。
-      if (!walkable) {
-        delete keptTags.highway;
-      }
-
       elements.push({
         type,
         id,
-        tags: keptTags,
+        tags,
         nodes: [...element.children]
-          .filter(e => e.localName === 'nd')
-          .map(e => Number(e.getAttribute('ref')))
+          .filter(t => t.localName === 'nd')
+          .map(t => Number(t.getAttribute('ref')))
       });
     }
 
@@ -1607,100 +600,1211 @@ function parseOsmFile(text) {
         id,
         tags,
         members: [...element.children]
-          .filter(e => e.localName === 'member')
-          .map(e => ({
-            type: e.getAttribute('type'),
-            ref: Number(e.getAttribute('ref')),
-            role: e.getAttribute('role')
+          .filter(t => t.localName === 'member')
+          .map(t => ({
+            type: t.getAttribute('type'),
+            ref: Number(t.getAttribute('ref')),
+            role: t.getAttribute('role')
           }))
       });
     }
   }
 
-  const result = { elements };
+  const data = { elements };
 
-  if (!validRoadData(result)) {
-    throw new Error('資料範圍未包含武陵高中校地與道路');
+  if (!validData(data)) {
+    throw new Error('檔案未包含武陵高中校地與道路');
+  }
+
+  return data;
+}
+
+function schoolRings(data) {
+  const nodes = new Map(
+    data.elements
+      .filter(e => e.type === 'node')
+      .map(e => [e.id, [e.lat, e.lon]])
+  );
+
+  const ways = new Map(
+    data.elements
+      .filter(e => e.type === 'way')
+      .map(e => [e.id, e])
+  );
+
+  const isSchool = e =>
+    e.tags?.amenity === 'school' &&
+    /武陵/.test(e.tags?.name || '');
+
+  const rings = [];
+
+  function add(ids) {
+    if (
+      ids.length < 4 ||
+      ids[0] !== ids[ids.length - 1]
+    ) return;
+
+    const points = ids.map(id => nodes.get(id));
+
+    if (points.every(Boolean)) {
+      rings.push(points);
+    }
+  }
+
+  for (const way of ways.values()) {
+    if (isSchool(way)) add(way.nodes || []);
+  }
+
+  for (const relation of data.elements) {
+    if (
+      relation.type !== 'relation' ||
+      !isSchool(relation)
+    ) continue;
+
+    const parts = (relation.members || [])
+      .filter(m =>
+        m.type === 'way' &&
+        (!m.role || m.role === 'outer')
+      )
+      .map(m => ways.get(m.ref)?.nodes?.slice())
+      .filter(Boolean);
+
+    while (parts.length) {
+      const chain = parts.pop();
+
+      while (chain[0] !== chain[chain.length - 1]) {
+        const end = chain[chain.length - 1];
+
+        const index = parts.findIndex(p =>
+          p[0] === end ||
+          p[p.length - 1] === end
+        );
+
+        if (index < 0) break;
+
+        const part = parts.splice(index, 1)[0];
+
+        if (part[0] !== end) part.reverse();
+
+        chain.push(...part.slice(1));
+      }
+
+      add(chain);
+    }
+  }
+
+  return rings;
+}
+
+function buildRoads(data) {
+  const rings = schoolRings(data);
+
+  if (!rings.length) {
+    throw new Error('找不到校地邊界，無法排除校內道路');
+  }
+
+  const nodes = new Map(
+    data.elements
+      .filter(e => e.type === 'node')
+      .map(e => [
+        e.id,
+        {
+          id: e.id,
+          coords: [e.lat, e.lon],
+          edges: new Map()
+        }
+      ])
+  );
+
+  const allowed =
+    /^(trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|footway|path|steps|road)(_link)?$/;
+
+  const ways = data.elements.filter(e =>
+    e.type === 'way' &&
+    e.nodes &&
+    allowed.test(e.tags?.highway || '') &&
+    e.tags.area !== 'yes' &&
+    !['private', 'no'].includes(e.tags.access) &&
+    e.tags.foot !== 'no'
+  );
+
+  for (const way of ways) {
+    const name = /江南街/.test(way.tags.name || '')
+      ? '道路'
+      : way.tags.name || '道路';
+
+    for (let i = 1; i < way.nodes.length; i++) {
+      const a = nodes.get(way.nodes[i - 1]);
+      const b = nodes.get(way.nodes[i]);
+
+      if (a && b && a.id !== b.id) {
+        a.edges.set(b.id, name);
+        b.edges.set(a.id, name);
+      }
+    }
+  }
+
+  const main = rings
+    .reduce((a, b) => a.length > b.length ? a : b)
+    .slice(0, -1);
+
+  const center = [0, 1].map(i =>
+    main.reduce((sum, p) => sum + p[i], 0) /
+    main.length
+  );
+
+  const centerXY = xy(center);
+  const zhongshan = [];
+
+  for (const way of ways) {
+    if (!/中山路/.test(way.tags.name || '')) continue;
+
+    for (let i = 1; i < way.nodes.length; i++) {
+      const a = nodes.get(way.nodes[i - 1]);
+      const b = nodes.get(way.nodes[i]);
+
+      if (a && b) {
+        zhongshan.push([xy(a.coords), xy(b.coords)]);
+      }
+    }
+  }
+
+  if (!zhongshan.length) {
+    throw new Error('圖資中找不到中山路');
+  }
+
+  // 尚未手動設定前門時，先找校地附近的圓環，
+  // 選擇圓環靠中山路側的節點。
+  if (!gates.front.coords) {
+    let best;
+
+    for (const way of ways) {
+      if (way.tags.junction !== 'roundabout') continue;
+
+      for (const id of way.nodes) {
+        const node = nodes.get(id);
+        if (!node) continue;
+
+        const schoolDistance = meters(node.coords, center);
+        if (schoolDistance > 400) continue;
+
+        const road = nearestSegment(
+          node.coords,
+          zhongshan
+        );
+
+        if (!road || road.distance > 100) continue;
+
+        const score =
+          road.distance + schoolDistance * 0.1;
+
+        if (!best || score < best.score) {
+          best = {
+            coords: node.coords,
+            score
+          };
+        }
+      }
+    }
+
+    if (!best) {
+      throw new Error(
+        '請按「設定前門」，點選圓環靠中山路側的校外道路'
+      );
+    }
+
+    gates.front.coords = best.coords;
+
+    log(
+      '前門暫依 OSM 圓環定位，可按「設定前門」校正。'
+    );
+  }
+
+  const front = nearestSegment(
+    gates.front.coords,
+    zhongshan
+  );
+
+  if (!front || front.distance > 250) {
+    throw new Error('前門離中山路過遠，請重新設定前門');
+  }
+
+  const outward = [
+    front.foot[0] - centerXY[0],
+    front.foot[1] - centerXY[1]
+  ];
+
+  const norm = Math.hypot(...outward);
+
+  if (norm < 1) {
+    throw new Error('無法判定前門出校方向');
+  }
+
+  const right = [
+    outward[1] / norm,
+    -outward[0] / norm
+  ];
+
+  const rightward = p =>
+    (p[0] - front.foot[0]) * right[0] +
+    (p[1] - front.foot[1]) * right[1];
+
+  function forbidden(p) {
+    const q = xy(p);
+
+    // 前門左側方向保留。
+    if (rightward(q) <= 0) return false;
+
+    const road = nearestSegment(p, zhongshan);
+
+    const side =
+      cross(road.a, road.b, q) / road.length;
+
+    const schoolSide =
+      cross(road.a, road.b, centerXY) / road.length;
+
+    // 中山路中心線保留，可以沿路走。
+    return Math.abs(side) > 1 && side * schoolSide < 0;
+  }
+
+  // 排除校內及中山路右側路段的對岸節點。
+  for (const [id, node] of nodes) {
+    if (
+      !node.edges.size ||
+      rings.some(r => inside(node.coords, r)) ||
+      forbidden(node.coords)
+    ) {
+      nodes.delete(id);
+    }
+  }
+
+  // 排除穿越校地及跨到右側中山路對岸的連線。
+  for (const node of nodes.values()) {
+    for (const id of node.edges.keys()) {
+      const target = nodes.get(id);
+
+      if (!target) {
+        node.edges.delete(id);
+        continue;
+      }
+
+      const a = xy(node.coords);
+      const b = xy(target.coords);
+
+      const throughCampus = rings.some(ring =>
+        ring.slice(1).some((p, i) =>
+          crosses(a, b, xy(ring[i]), xy(p))
+        )
+      );
+
+      const acrossRoad = zhongshan.some(([c, d]) =>
+        crosses(a, b, c, d) &&
+        rightward([
+          (a[0] + b[0]) / 2,
+          (a[1] + b[1]) / 2
+        ]) > 0
+      );
+
+      if (throughCampus || acrossRoad) {
+        node.edges.delete(id);
+      }
+    }
+  }
+
+  for (const [id, node] of nodes) {
+    if (!node.edges.size) nodes.delete(id);
+  }
+
+  return { nodes, rings };
+}
+
+// 移除道路中間的彎曲點作為停靠點，
+// 但保留完整道路折線，避免小狗直線跨街區。
+function simplifyRoads(nodes) {
+  const junctions = new Map(
+    [...nodes].filter(([, n]) =>
+      n.edges.size !== 2
+    )
+  );
+
+  const corridors = [];
+  const used = new Set();
+
+  const edgeKey = (a, b) =>
+    a < b ? `${a}:${b}` : `${b}:${a}`;
+
+  for (const [id, node] of junctions) {
+    for (const [nextId, name] of node.edges) {
+      if (used.has(edgeKey(id, nextId))) continue;
+
+      const ids = [id];
+      const seen = new Set([id]);
+
+      let previous = id;
+      let next = nextId;
+
+      while (!seen.has(next)) {
+        seen.add(next);
+        used.add(edgeKey(previous, next));
+        ids.push(next);
+
+        const target = nodes.get(next);
+
+        if (!target || target.edges.size !== 2) break;
+
+        const onward = [...target.edges.keys()]
+          .find(x => x !== previous);
+
+        previous = next;
+        next = onward;
+      }
+
+      const end = ids[ids.length - 1];
+
+      if (!junctions.has(end) || end === id) continue;
+
+      const coords = ids.map(x =>
+        nodes.get(x).coords
+      );
+
+      corridors.push({
+        id: corridors.length,
+        a: id,
+        b: end,
+        name,
+        coords,
+        length: pathLength(coords)
+      });
+    }
+  }
+
+  const parent = new Map(
+    [...junctions.keys()].map(id => [id, id])
+  );
+
+  function root(id) {
+    if (parent.get(id) !== id) {
+      parent.set(id, root(parent.get(id)));
+    }
+
+    return parent.get(id);
+  }
+
+  // 只合併有道路連接的近距離岔路，
+  // 避免僅因地圖位置接近就把兩條不同道路合併。
+  for (const corridor of corridors) {
+    if (
+      corridor.length <= MERGE_DISTANCE &&
+      junctions.get(corridor.a).edges.size >= 3 &&
+      junctions.get(corridor.b).edges.size >= 3
+    ) {
+      parent.set(
+        root(corridor.b),
+        root(corridor.a)
+      );
+    }
+  }
+
+  const groups = new Map();
+
+  for (const id of junctions.keys()) {
+    const group = root(id);
+
+    if (!groups.has(group)) groups.set(group, []);
+
+    groups.get(group).push(id);
+  }
+
+  const result = new Map();
+  const representatives = new Map();
+
+  const internal = new Map(
+    [...junctions.keys()].map(id => [id, []])
+  );
+
+  for (const [group, members] of groups) {
+    const center = [0, 1].map(i =>
+      members.reduce(
+        (sum, id) => sum + nodes.get(id).coords[i],
+        0
+      ) / members.length
+    );
+
+    const representative = members.reduce((a, b) =>
+      meters(nodes.get(a).coords, center) <
+      meters(nodes.get(b).coords, center)
+        ? a : b
+    );
+
+    representatives.set(group, representative);
+
+    result.set(group, {
+      id: group,
+      coords: nodes.get(representative).coords,
+      routes: []
+    });
+  }
+
+  for (const corridor of corridors) {
+    if (root(corridor.a) !== root(corridor.b)) continue;
+
+    internal.get(corridor.a).push({
+      to: corridor.b,
+      coords: corridor.coords
+    });
+
+    internal.get(corridor.b).push({
+      to: corridor.a,
+      coords: [...corridor.coords].reverse()
+    });
+  }
+
+  function internalPath(from, to) {
+    if (from === to) {
+      return [nodes.get(from).coords];
+    }
+
+    const queue = [{
+      id: from,
+      coords: [nodes.get(from).coords]
+    }];
+
+    const seen = new Set([from]);
+
+    for (let i = 0; i < queue.length; i++) {
+      for (const route of internal.get(queue[i].id) || []) {
+        if (seen.has(route.to)) continue;
+
+        const coords = [
+          ...queue[i].coords,
+          ...route.coords.slice(1)
+        ];
+
+        if (route.to === to) return coords;
+
+        seen.add(route.to);
+        queue.push({
+          id: route.to,
+          coords
+        });
+      }
+    }
+
+    throw new Error('路口內部連線不完整');
+  }
+
+  for (const corridor of corridors) {
+    const a = root(corridor.a);
+    const b = root(corridor.b);
+
+    if (a === b) continue;
+
+    const coords = [
+      ...internalPath(
+        representatives.get(a),
+        corridor.a
+      ),
+      ...corridor.coords.slice(1),
+      ...internalPath(
+        corridor.b,
+        representatives.get(b)
+      ).slice(1)
+    ];
+
+    result.get(a).routes.push({
+      edge: corridor.id,
+      to: b,
+      name: corridor.name,
+      coords
+    });
+
+    result.get(b).routes.push({
+      edge: corridor.id,
+      to: a,
+      name: corridor.name,
+      coords: [...coords].reverse()
+    });
+  }
+
+  for (const [id, node] of result) {
+    if (!node.routes.length) result.delete(id);
   }
 
   return result;
 }
 
-// 替換道路載入流程，保留原本導航規則。
-loadData = async function(token) {
-  // 第一順位：瀏覽器內已儲存的資料
+function rebuild() {
+  const built = buildRoads(rawData);
+
+  streets = built.nodes;
+  graph = simplifyRoads(streets);
+
+  if (!graph.size) {
+    throw new Error('沒有符合限制的道路');
+  }
+
+  pointLayer.clearLayers();
+  campusLayer.clearLayers();
+
+  for (const ring of built.rings) {
+    L.polygon(ring, {
+      color: '#ef4444',
+      weight: 1,
+      fillOpacity: 0.06,
+      interactive: false
+    }).addTo(campusLayer);
+  }
+
+  // 每個合併後的路口只畫一個點。
+  for (const node of graph.values()) {
+    if (node.routes.length >= 3) {
+      L.circleMarker(node.coords, {
+        radius: 5,
+        color: '#fbbf24',
+        weight: 1,
+        fillOpacity: 0.9
+      }).addTo(pointLayer);
+    }
+  }
+
+  gateLayer.clearLayers();
+
+  for (const key of ['front', 'back']) {
+    if (!gates[key].coords) continue;
+
+    L.marker(gates[key].coords, {
+      icon: L.divIcon({
+        className: 'dog',
+        html: '🏫',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      })
+    })
+      .bindTooltip(gates[key].name)
+      .addTo(gateLayer);
+  }
+}
+
+function start() {
+  const gate = gates[selectedGate];
+
+  if (!gate.coords) {
+    throw new Error('請先設定校門');
+  }
+
+  let nearest;
+  let best = Infinity;
+
+  for (const node of streets.values()) {
+    const d = meters(gate.coords, node.coords);
+
+    if (d < best) {
+      best = d;
+      nearest = node;
+    }
+  }
+
+  if (!nearest || best > 200) {
+    throw new Error(
+      '校門附近找不到可行校外道路，請重新設定校門'
+    );
+  }
+
+  const exact = [...graph.values()].find(node =>
+    meters(node.coords, nearest.coords) < 0.2
+  );
+
+  startRoutes = [];
+  currentId = undefined;
+  arrived = false;
+
+  if (exact) {
+    currentId = exact.id;
+    arrived = true;
+  } else {
+    for (const node of graph.values()) {
+      for (const route of node.routes) {
+        const index = route.coords.findIndex(p =>
+          meters(p, nearest.coords) < 0.2
+        );
+
+        if (index < 0) continue;
+
+        const coords = route.coords.slice(index);
+
+        if (
+          coords.length < 2 ||
+          pathLength(coords) < 0.5
+        ) continue;
+
+        if (
+          !startRoutes.some(r =>
+            r.edge === route.edge &&
+            r.to === route.to
+          )
+        ) {
+          startRoutes.push({
+            ...route,
+            coords
+          });
+        }
+      }
+    }
+  }
+
+  if (!arrived && !startRoutes.length) {
+    throw new Error(
+      '校門附近道路未連到可用路口，請把校門設在校外道路上'
+    );
+  }
+
+  previousEdge = null;
+  steps = 0;
+  history = [nearest.coords];
+
+  dog.setLatLng(nearest.coords);
+  trail.setLatLngs(history);
+  map.setView(nearest.coords, 17);
+
+  updatePosition();
+  state('idle');
+
+  log(
+    `${gate.name}出發，對齊校外道路約 ` +
+    `${Math.round(best)} 公尺。`
+  );
+
+  log('✅ 校內排除、路口合併、禁止迴轉。');
+}
+
+function cacheData() {
+  try {
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify(rawData)
+    );
+  } catch (_) {
+    log('瀏覽器無法保存道路資料，請下載備份。');
+  }
+}
+
+async function fetchSource(source, token) {
+  const controller = new AbortController();
+
+  requestController = controller;
+
+  const timeout = setTimeout(
+    () => controller.abort(),
+    source.timeout || 18000
+  );
+
+  try {
+    const response = await fetch(source.url, {
+      method: source.body ? 'POST' : 'GET',
+      ...(source.body ? { body: source.body } : {}),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const text = await response.text();
+
+    if (token !== version) return null;
+
+    return parseData(text);
+  } finally {
+    clearTimeout(timeout);
+
+    if (requestController === controller) {
+      requestController = undefined;
+    }
+  }
+}
+
+async function loadData(token) {
+  if (rawData) return;
+
+  // 優先使用瀏覽器已保存的道路。
   try {
     const cached = JSON.parse(
-      localStorage.getItem(ROAD_CACHE_KEY) || 'null'
+      localStorage.getItem(CACHE_KEY) || 'null'
     );
 
-    if (validRoadData(cached)) {
+    if (validData(cached)) {
       rawData = cached;
-
-      log('✅ 使用已儲存的道路資料，不需連道路伺服器。');
+      log('✅ 使用已儲存的道路資料。');
       return;
     }
   } catch (_) {}
 
-  // 第二順位：OpenStreetMap 主站
-  $('position').textContent =
-    '正在從 OpenStreetMap 主站下載道路…';
+  const query = `
+    [out:json][timeout:15];
+    (
+      way
+        ["highway"~"^(trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|footway|path|steps|road)(_link)?$"]
+        ["area"!="yes"]
+        ["access"!~"^(private|no)$"]
+        ["foot"!="no"]
+        (around:1800,24.989,121.285);
 
-  const request = new AbortController();
-  requestController = request;
-
-  const timeout = setTimeout(
-    () => request.abort(),
-    22000
-  );
-
-  try {
-    const response = await fetch(
-      'https://api.openstreetmap.org/api/0.6/map?bbox=' +
-      LOCAL_BBOX,
-      { signal: request.signal }
+      nwr
+        ["amenity"="school"]
+        ["name"~"武陵"]
+        (around:1800,24.989,121.285);
     );
+    (._;>;);
+    out body;
+  `;
 
-    if (!response.ok) {
-      throw new Error('HTTP ' + response.status);
+  const sources = [
+    {
+      name: 'GitHub 同資料夾的道路檔',
+      url: new URL(
+        './wuling-roads.json',
+        document.baseURI
+      ).href,
+      timeout: 6000
+    },
+    {
+      name: 'OpenStreetMap 主站',
+      url:
+        'https://api.openstreetmap.org/api/0.6/map' +
+        '?bbox=121.276,24.982,121.294,24.999',
+      timeout: 22000
+    },
+    ...ROAD_SERVERS.map((url, i) => ({
+      name: `道路服務 ${i + 1}`,
+      url,
+      body: new URLSearchParams({ data: query }),
+      timeout: 20000
+    }))
+  ];
+
+  for (const source of sources) {
+    if (token !== version) return;
+
+    $('position').textContent =
+      '正在讀取：' + source.name;
+
+    let data;
+
+    try {
+      data = await fetchSource(source, token);
+    } catch (error) {
+      if (token !== version) return;
+
+      log(
+        `⚠️ ${source.name}：` +
+        (
+          error.name === 'AbortError'
+            ? '連線逾時'
+            : error.message
+        )
+      );
+
+      continue;
     }
 
-    const source = await response.text();
+    if (token !== version || !data) return;
+
+    rawData = data;
+    cacheData();
+
+    log('✅ 已取得道路資料。建議下載備份。');
+    return;
+  }
+
+  throw new Error(
+    '無法取得道路資料。請匯入道路 JSON／OSM，' +
+    '或將 wuling-roads.json 放進 GitHub 同一資料夾'
+  );
+}
+
+async function resetGame() {
+  if (!map) return;
+
+  cancel();
+
+  settingGate = null;
+  map.getContainer().style.cursor = '';
+
+  const token = version;
+
+  state('loading');
+
+  $('modal').style.display = 'none';
+  $('direction').textContent = '尚未轉向';
+  $('foodResult').textContent = '尚未選擇';
+  $('logs').replaceChildren();
+
+  foodLayer.clearLayers();
+  trail.setLatLngs([]);
+
+  try {
+    await loadData(token);
 
     if (token !== version) return;
 
-    rawData = parseOsmFile(source);
-    cacheRoadData(rawData);
-
-    log('✅ 已從 OpenStreetMap 主站取得道路。');
-    return;
+    rebuild();
+    start();
   } catch (error) {
     if (token !== version) return;
 
-    log('⚠️ 主站下載未成功，改試道路查詢服務。');
-  } finally {
-    clearTimeout(timeout);
+    state('error');
 
-    if (requestController === request) {
-      requestController = undefined;
+    $('position').textContent = error.message;
+    log('❌ ' + error.message);
+  }
+}
+
+function selectGate(key) {
+  selectedGate = key;
+
+  $('front').classList.toggle(
+    'active',
+    key === 'front'
+  );
+
+  $('back').classList.toggle(
+    'active',
+    key === 'back'
+  );
+
+  resetGame();
+}
+
+function setGateOnMap(key) {
+  if (!map) return;
+
+  cancel();
+
+  settingGate = key;
+  state('setting');
+
+  $('modal').style.display = 'none';
+  map.getContainer().style.cursor = 'crosshair';
+
+  $('position').textContent =
+    `請點選${key === 'front'
+      ? '前門圓環靠中山路側'
+      : '後門'}的校外道路位置。`;
+
+  log('📍 點地圖設定校門，設定後重新開始。');
+}
+
+function updatePosition() {
+  const p = dog.getLatLng();
+
+  $('position').textContent =
+    `📍 已走 ${steps} 段道路 ` +
+    `[${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}]`;
+}
+
+function bearing(a, b) {
+  return Math.atan2(
+    (b[1] - a[1]) * Math.cos(a[0] * Math.PI / 180),
+    b[0] - a[0]
+  ) * 180 / Math.PI;
+}
+
+function turnAngle(route) {
+  if (history.length < 2) return null;
+
+  const points = route.coords;
+  const first = points[0];
+
+  const next = points.find(p =>
+    meters(first, p) >= 8
+  ) || points[points.length - 1];
+
+  const end = history[history.length - 1];
+
+  let previous = history[history.length - 2];
+
+  for (let i = history.length - 2; i >= 0; i--) {
+    previous = history[i];
+
+    if (meters(previous, end) >= 8) break;
+  }
+
+  return (
+    (
+      bearing(first, next) -
+      bearing(previous, end) +
+      540
+    ) % 360
+  ) - 180;
+}
+
+function routeLabel(route) {
+  const change = turnAngle(route);
+
+  if (change === null) {
+    const a = route.coords[0];
+
+    const b = route.coords.find(p =>
+      meters(a, p) >= 8
+    ) || route.coords[route.coords.length - 1];
+
+    const direction = ['北', '東', '南', '西'][
+      Math.round((bearing(a, b) + 360) / 90) % 4
+    ];
+
+    return `${direction}向・${route.name}`;
+  }
+
+  const direction =
+    Math.abs(change) < 35
+      ? '直行'
+      : change > 0 ? '右轉' : '左轉';
+
+  return `${direction}・${route.name}`;
+}
+
+function availableRoutes() {
+  const routes = arrived
+    ? graph.get(currentId)?.routes || []
+    : startRoutes;
+
+  return routes.filter(route => {
+    const angle = turnAngle(route);
+
+    return (
+      route.edge !== previousEdge &&
+      (angle === null || Math.abs(angle) < 150)
+    );
+  });
+}
+
+function roulette(draw, done, count = 10) {
+  const token = version;
+
+  function tick(n) {
+    if (token !== version) return;
+
+    draw();
+
+    if (n >= count) {
+      done();
+    } else {
+      spinTimer = setTimeout(
+        () => tick(n + 1),
+        80
+      );
     }
   }
 
-  // 第三順位：原本的備用查詢服務
-  await oldLoadData(token);
+  tick(0);
+}
 
-  if (token !== version) return;
+function spinMove() {
+  if (phase !== 'idle') return;
 
-  if (!validRoadData(rawData)) {
-    throw new Error('道路資料不完整，請匯入備份後重試');
+  const routes = availableRoutes();
+
+  if (!routes.length) {
+    $('direction').textContent =
+      '沒有可前進出口';
+
+    $('move').disabled = true;
+
+    log(
+      '🛑 沒有其他出口，不迴轉。' +
+      '可轉美食輪盤或重置。'
+    );
+
+    return;
   }
 
-  cacheRoadData(rawData);
-};
+  state('spinning');
+
+  const pick = () =>
+    routes[Math.floor(Math.random() * routes.length)];
+
+  roulette(
+    () => {
+      $('direction').textContent =
+        '🧭 ' + routeLabel(pick());
+    },
+    () => {
+      const route = pick();
+      const label = routeLabel(route);
+
+      $('direction').textContent = '🧭 ' + label;
+
+      animate(route, label);
+    }
+  );
+}
+
+function animate(route, label) {
+  state('moving');
+
+  const token = version;
+  const coords = route.coords;
+  const lengths = [0];
+
+  for (let i = 1; i < coords.length; i++) {
+    lengths.push(
+      lengths[i - 1] +
+      meters(coords[i - 1], coords[i])
+    );
+  }
+
+  const total = lengths[lengths.length - 1];
+
+  const duration = Math.max(
+    700,
+    Math.min(6000, total * 10)
+  );
+
+  let started;
+
+  function draw(time) {
+    if (token !== version) return;
+
+    started ??= time;
+
+    const progress = Math.min(
+      1,
+      (time - started) / duration
+    );
+
+    const traveled = progress * total;
+
+    let i = 1;
+
+    while (
+      i < lengths.length - 1 &&
+      lengths[i] < traveled
+    ) {
+      i++;
+    }
+
+    const fraction =
+      (traveled - lengths[i - 1]) /
+      (lengths[i] - lengths[i - 1] || 1);
+
+    const a = coords[i - 1];
+    const b = coords[i];
+
+    const point = [
+      a[0] + (b[0] - a[0]) * fraction,
+      a[1] + (b[1] - a[1]) * fraction
+    ];
+
+    dog.setLatLng(point);
+
+    trail.setLatLngs([
+      ...history,
+      ...coords.slice(1, i),
+      point
+    ]);
+
+    if (progress < 1) {
+      animationFrame = requestAnimationFrame(draw);
+      return;
+    }
+
+    history.push(...coords.slice(1));
+
+    currentId = route.to;
+    previousEdge = route.edge;
+    arrived = true;
+    steps++;
+
+    const node = graph.get(currentId);
+
+    dog.setLatLng(node.coords);
+    trail.setLatLngs(history);
+    map.panTo(node.coords);
+
+    updatePosition();
+    state('idle');
+
+    log(
+      `第 ${steps} 步：${label}，` +
+      '抵達下一個路口／道路終點，停下等待。'
+    );
+
+    if (!availableRoutes().length) {
+      $('move').disabled = true;
+
+      log(
+        '🛑 沒有其他出口，不迴轉。' +
+        '可轉美食輪盤或重置。'
+      );
+    }
+  }
+
+  animationFrame = requestAnimationFrame(draw);
+}
+
+function spinFood() {
+  if (phase !== 'idle') return;
+
+  state('food');
+
+  roulette(
+    () => {
+      $('foodResult').textContent =
+        Math.random() < 1 / 3
+          ? '🎉 吃！'
+          : '❌ 不吃';
+    },
+    () => {
+      if (Math.floor(Math.random() * 3) !== 0) {
+        $('foodResult').textContent = '❌ 不吃';
+
+        state('idle');
+
+        if (!availableRoutes().length) {
+          $('move').disabled = true;
+        }
+
+        log('🍔 不吃。');
+        return;
+      }
+
+      state('finished');
+
+      $('foodResult').textContent =
+        '🎉 在附近找美食！';
+
+      const p = dog.getLatLng();
+
+      L.marker(p, {
+        icon: L.divIcon({
+          className: 'dog',
+          html: '🍕',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        })
+      }).addTo(foodLayer);
+
+      $('foodDescription').textContent =
+        `走過 ${steps} 段道路後，` +
+        '決定在目前位置附近找美食！' +
+        `座標：${p.lat.toFixed(5)}, ` +
+        `${p.lng.toFixed(5)}。` +
+        '尚未搜尋實際店家。';
+
+      $('modal').style.display = 'flex';
+
+      log('🍔 決定在附近用餐！');
+    }
+  );
+}
+
+function closeModal() {
+  $('modal').style.display = 'none';
+}
 
 function backupRoads() {
-  if (!validRoadData(rawData)) {
-    log('尚未取得道路資料，現在無法備份。');
+  if (!validData(rawData)) {
+    log('尚未取得道路資料，無法備份。');
     return;
   }
 
@@ -1719,54 +1823,22 @@ function backupRoads() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// 加入匯入及備份按鈕
-const roadTools = document.createElement('div');
-
-roadTools.innerHTML = `
-  <div class="row">
-    <button class="small" id="importRoads">
-      📂 匯入道路
-    </button>
-
-    <button class="small" id="backupRoads">
-      💾 備份道路
-    </button>
-  </div>
-
-  <input
-    id="roadFile"
-    type="file"
-    accept=".json,.osm,.xml"
-    hidden
-  >
-
-  <p class="note" style="margin-top:8px">
-    首次成功載入後會儲存道路資料。
-    若服務無法連線，可匯入道路備份。
-    地圖底圖仍需網路。
-  </p>
-`;
-
-document.querySelector('.panel').append(roadTools);
-
-$('importRoads').onclick = () => {
-  $('roadFile').click();
-};
-
-$('backupRoads').onclick = backupRoads;
-
-$('roadFile').onchange = async event => {
+async function importRoads(event) {
   const file = event.target.files[0];
 
   if (!file) return;
 
   try {
-    const data = parseOsmFile(await file.text());
+    const data = parseData(await file.text());
+
+    if (!schoolRings(data).length) {
+      throw new Error('檔案的校地邊界不完整');
+    }
 
     cancel();
-    rawData = data;
 
-    cacheRoadData(data);
+    rawData = data;
+    cacheData();
 
     await resetGame();
   } catch (error) {
@@ -1774,7 +1846,87 @@ $('roadFile').onchange = async event => {
   } finally {
     event.target.value = '';
   }
-};
-  </script>
+}
+
+function init() {
+  if (typeof L === 'undefined') {
+    $('position').textContent =
+      '地圖元件載入失敗，請確認網路後重新整理。';
+
+    return;
+  }
+
+  map = L.map('map').setView(
+    [24.989, 121.285],
+    17
+  );
+
+  L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }
+  ).addTo(map);
+
+  campusLayer = L.layerGroup().addTo(map);
+  pointLayer = L.layerGroup().addTo(map);
+  gateLayer = L.layerGroup().addTo(map);
+  foodLayer = L.layerGroup().addTo(map);
+
+  trail = L.polyline([], {
+    color: '#3b82f6',
+    weight: 5,
+    opacity: 0.85
+  }).addTo(map);
+
+  dog = L.marker([24.989, 121.285], {
+    icon: L.divIcon({
+      className: 'dog',
+      html: '🐶',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    }),
+    zIndexOffset: 1000
+  }).addTo(map);
+
+  map.on('click', event => {
+    if (!settingGate) return;
+
+    const key = settingGate;
+
+    gates[key].coords = [
+      event.latlng.lat,
+      event.latlng.lng
+    ];
+
+    try {
+      localStorage.setItem(
+        GATE_KEY,
+        JSON.stringify({
+          front: gates.front.coords,
+          back: gates.back.coords
+        })
+      );
+    } catch (_) {}
+
+    selectGate(key);
+  });
+
+  $('roadFile').addEventListener(
+    'change',
+    importRoads
+  );
+
+  window.addEventListener(
+    'resize',
+    () => map.invalidateSize()
+  );
+
+  resetGame();
+}
+
+window.addEventListener('load', init);
+</script>
 </body>
 </html>
