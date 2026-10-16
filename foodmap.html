@@ -55,13 +55,10 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <div class="label">起點校門</div>
 
       <div class="row" style="margin-top:8px">
-        <button id="front" class="gate active"
-          onclick="selectGate('front')">
+        <button id="front" class="gate active" onclick="selectGate('front')">
           前門・圓環中山路側
         </button>
-
-        <button id="back" class="gate"
-          onclick="selectGate('back')">
+        <button id="back" class="gate" onclick="selectGate('back')">
           後門
         </button>
       </div>
@@ -70,7 +67,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <button class="small" onclick="setGateOnMap('front')">
           📍 設定前門
         </button>
-
         <button class="small" onclick="setGateOnMap('back')">
           📍 設定後門
         </button>
@@ -81,7 +77,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <div class="label">🧭 一次走到下一個路口，不迴轉</div>
       <div class="result" id="direction">尚未轉向</div>
       <div id="position">準備載入道路…</div>
-
       <button id="move" class="blue" disabled onclick="spinMove()">
         🎲 抽方向並前進
       </button>
@@ -90,7 +85,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <div class="card">
       <div class="label">🍗 美食輪盤・吃的機率 1/3</div>
       <div class="result" id="foodResult">尚未選擇</div>
-
       <button id="food" class="orange" disabled onclick="spinFood()">
         🍟 轉美食輪盤
       </button>
@@ -108,7 +102,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
         onclick="document.getElementById('roadFile').click()">
         📂 匯入道路
       </button>
-
       <button class="small" onclick="backupRoads()">
         💾 備份道路
       </button>
@@ -117,8 +110,9 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <input id="roadFile" type="file" accept=".json,.osm,.xml" hidden>
 
     <p class="note">
-      版本 8。校內道路排除，同一路口附近的岔路合併；
-      禁止原路迴轉。保留吉昌街與中山路847巷，排除上海路。
+      版本 9。校內道路排除，同一路口附近的岔路合併；
+      禁止原路迴轉。保留國鼎街、吉昌街與中山路847巷；
+      愛買只有一個入口點；排除上海路。
       中山路可沿路走，但不可跨到學校對側。
       校門及限制依 OSM 圖資判定，可按「設定」後點地圖校正。
       道路備份檔 wuling-roads.json 可與本頁放在 GitHub 同一資料夾。
@@ -552,14 +546,13 @@ function buildRoads(data) {
       if (a && b && a.id !== b.id) {
         a.edges.set(b.id, name);
         b.edges.set(a.id, name);
-
         a.names.add(name);
         b.names.add(name);
       }
     }
   }
 
-  // 保留指定路口，不讓近距離合併把它吞掉。
+  // 保留指定路口，避免被合併或當成中間點。
   for (const node of nodes.values()) {
     const names = [...node.names];
 
@@ -573,7 +566,7 @@ function buildRoads(data) {
     }
   }
 
-  // 從圖資辨識愛買入口，不新增跨地塊的虛構直線。
+  // 從圖資辨識愛買入口，不新增跨地塊的直線。
   const aimaiWays = data.elements.filter(e =>
     e.type === 'way' &&
     e.nodes &&
@@ -613,9 +606,7 @@ function buildRoads(data) {
       .join(' ');
 
     if (/愛買/.test(text)) {
-      for (const id of way.nodes) {
-        namedEntryIds.add(id);
-      }
+      for (const id of way.nodes) namedEntryIds.add(id);
     }
   }
 
@@ -647,8 +638,12 @@ function buildRoads(data) {
   const centerXY = xy(center);
   const zhongshan = [];
 
+  // 只用中山路主線當邊界，巷弄不是邊界。
+  const mainRoadName =
+    /^中山路(?:[一二三四五六七八九十0-9]+段)?$/;
+
   for (const way of ways) {
-    if (!/中山路/.test(way.tags.name || '')) continue;
+    if (!mainRoadName.test(way.tags.name || '')) continue;
 
     for (let i = 1; i < way.nodes.length; i++) {
       const a = nodes.get(way.nodes[i - 1]);
@@ -714,10 +709,13 @@ function buildRoads(data) {
     throw new Error('前門離中山路過遠，請重新設定前門');
   }
 
-  // 中山路保留學校這側，不進入對側。
+  // 只在主線附近判斷對側，
+  // 不再用無限延伸的半平面誤刪國鼎街等區域。
   function forbidden(p) {
     const q = xy(p);
     const road = nearestSegment(p, zhongshan);
+
+    if (road.distance > 45) return false;
 
     const side =
       cross(road.a, road.b, q) / road.length;
@@ -768,6 +766,67 @@ function buildRoads(data) {
 
   for (const [id, node] of nodes) {
     if (!node.edges.size) nodes.delete(id);
+  }
+
+  // 愛買候選入口只留下單一個道路節點。
+  const aimaiCandidates = [...nodes.values()]
+    .filter(node => node.terminal);
+
+  for (const node of nodes.values()) {
+    node.terminal = false;
+
+    if (node.label === '愛買入口') {
+      delete node.label;
+    }
+  }
+
+  terminalNodes = new Set();
+
+  if (aimaiCandidates.length) {
+    const entranceScore = node =>
+      entrancePoints.length
+        ? Math.min(
+            ...entrancePoints.map(p =>
+              meters(p, node.coords)
+            )
+          )
+        : meters(gates.front.coords, node.coords);
+
+    aimaiCandidates.sort((a, b) =>
+      entranceScore(a) - entranceScore(b) ||
+      a.id - b.id
+    );
+
+    const entry = aimaiCandidates[0];
+
+    entry.terminal = true;
+    entry.destination = 'aimai';
+    entry.label = '愛買入口';
+
+    terminalNodes.add(entry.id);
+  }
+
+  // 保留國鼎街的路口及道路端點。
+  for (const node of nodes.values()) {
+    if (
+      ![...node.names].some(name =>
+        /國鼎街/.test(name)
+      )
+    ) continue;
+
+    if (
+      node.edges.size >= 3 ||
+      node.names.size >= 2
+    ) {
+      node.keep = true;
+      node.label = node.label || '國鼎街路口';
+    }
+
+    if (node.edges.size === 1) {
+      node.terminal = true;
+      node.destination = 'street-end';
+      node.label = '國鼎街道路端點';
+    }
   }
 
   pruneStreetEnds(nodes);
@@ -905,6 +964,10 @@ function simplifyRoads(nodes) {
       routes: [],
       keep: members.some(id => nodes.get(id).keep),
       terminal: members.some(id => nodes.get(id).terminal),
+      destination:
+        members
+          .map(id => nodes.get(id).destination)
+          .find(Boolean) || '',
       label:
         members
           .map(id => nodes.get(id).label)
@@ -998,7 +1061,6 @@ function simplifyRoads(nodes) {
   return result;
 }
 
-// 清理一般斷頭支線，但保留圖資辨識出的愛買入口。
 function pruneStreetEnds(nodes) {
   const queue = [...nodes.values()]
     .filter(node => node.edges.size < 2)
@@ -1029,7 +1091,6 @@ function pruneStreetEnds(nodes) {
   }
 }
 
-// 將只剩前後兩個出口的中間點連續接起來。
 function decisionGraph(input) {
   let changed = true;
 
@@ -1064,7 +1125,8 @@ function decisionGraph(input) {
         coords: node.coords,
         routes: [],
         label: node.label || '',
-        terminal: !!node.terminal
+        terminal: !!node.terminal,
+        destination: node.destination || ''
       });
     }
   }
@@ -1123,7 +1185,7 @@ function decisionGraph(input) {
         edge: key + ':f',
         reverseEdge: key + ':r',
         to: end,
-        name: result.get(end).terminal
+        name: result.get(end).destination === 'aimai'
           ? '愛買入口'
           : first.name,
         coords
@@ -1133,7 +1195,7 @@ function decisionGraph(input) {
         edge: key + ':r',
         reverseEdge: key + ':f',
         to: id,
-        name: result.get(id).terminal
+        name: result.get(id).destination === 'aimai'
           ? '愛買入口'
           : first.name,
         coords: [...coords].reverse()
@@ -1286,7 +1348,7 @@ function start() {
     `${Math.round(best)} 公尺。`
   );
 
-  log('✅ 上海路已排除；具名巷道與愛買入口通道保留。');
+  log('✅ 上海路已排除；國鼎街及具名巷道保留。');
 
   log(
     protectedJunctions.size
@@ -1295,8 +1357,10 @@ function start() {
   );
 
   log(
-    [...graph.values()].some(node => node.terminal)
-      ? '✅ 已辨識愛買入口。'
+    [...graph.values()].some(node =>
+      node.destination === 'aimai'
+    )
+      ? '✅ 愛買保留單一入口點。'
       : '⚠️ 本份圖資未標出可連通的愛買入口，沒有虛構入口連線。'
   );
 }
@@ -1313,7 +1377,6 @@ function cacheData() {
 
 async function fetchSource(source, token) {
   const controller = new AbortController();
-
   requestController = controller;
 
   const timeout = setTimeout(
@@ -1497,7 +1560,6 @@ function setGateOnMap(key) {
 
   cancel();
   settingGate = key;
-
   state('setting');
 
   $('modal').style.display = 'none';
@@ -1576,7 +1638,8 @@ function routeLabel(route) {
   return `${direction}・${route.name}`;
 }
 
-// 只排除剛走來的反向道路，不按角度刪除正常出口。
+// 只禁止沿剛走來的道路原路返回。
+// 大角度的正常轉彎不會被誤刪。
 function availableRoutes() {
   const routes = arrived
     ? graph.get(currentId)?.routes || []
@@ -1736,12 +1799,20 @@ function animate(route, label) {
 
     if (node.terminal) {
       $('move').disabled = true;
-      $('direction').textContent = '📍 抵達愛買入口';
 
-      log(
-        '✅ 已抵達愛買入口，不往上海路走。' +
-        '可轉美食輪盤。'
-      );
+      if (node.destination === 'aimai') {
+        $('direction').textContent = '📍 抵達愛買入口';
+
+        log(
+          '✅ 已抵達愛買入口，不往上海路走。' +
+          '可轉美食輪盤。'
+        );
+      } else {
+        $('direction').textContent =
+          '📍 ' + (node.label || '道路端點');
+
+        log('抵達實際道路端點，可轉美食輪盤或重置。');
+      }
     } else if (!availableRoutes().length) {
       $('move').disabled = true;
 
