@@ -71,9 +71,10 @@ button:disabled{opacity:.45;cursor:not-allowed}
     </div>
 
     <div class="card">
-      <div class="label">🧭 路線輪盤・走到下一個路口</div>
+      <div class="label">🧭 一次走到下一個路口，不迴轉</div>
       <div class="result" id="direction">尚未轉向</div>
       <div id="position">準備載入道路…</div>
+
       <button id="move" class="blue" disabled onclick="spinMove()">
         🎲 抽方向並前進
       </button>
@@ -82,10 +83,12 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <div class="card">
       <div class="label">🍗 獨立輪盤・吃的機率 1/3</div>
       <div class="result" id="foodResult">尚未選擇</div>
+
       <button id="food" class="orange" onclick="spinFood()">
         🍟 轉吃／不吃輪盤
       </button>
-      <div class="note">隨時可以重抽，結果不影響路線。</div>
+
+      <div class="note">隨時可以重抽，不影響路線。</div>
     </div>
 
     <div>
@@ -100,6 +103,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
         onclick="document.getElementById('roadFile').click()">
         📂 匯入道路
       </button>
+
       <button class="small" onclick="backupRoads()">
         💾 備份道路
       </button>
@@ -108,13 +112,12 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <input id="roadFile" type="file" accept=".json,.osm,.xml" hidden>
 
     <p class="note">
-      版本 10。校內道路排除，同一路口附近的岔路合併；
-      禁止原路迴轉。保留國鼎街、吉昌街與中山路847巷；
-      愛買只有一個入口點；排除上海路。
-      中山路可沿路走，但不可跨到學校對側。
-      校門及限制依 OSM 圖資判定，可按「設定」後點地圖校正。
-      道路備份檔 wuling-roads.json 可與本頁放在 GitHub 同一資料夾。
-      地圖底圖與首次下載仍需網路。
+      版本 11。保留原本的路口處理規則。
+      探索範圍只移除越界節點與路段，不重新合併範圍內路口。
+      國鼎街、吉昌街及中山路847巷保留；
+      愛買只有一個入口點，上海路排除。
+      吃／不吃可隨時抽，不影響路線。
+      地圖與首次下載需要網路。
     </p>
   </div>
 </main>
@@ -184,13 +187,12 @@ let steps = 0;
 let history = [];
 let phase = 'loading';
 
-// 路線專用狀態與計時器。
 let version = 0;
 let animationFrame = 0;
 let spinTimer = 0;
 let requestController;
 
-// 吃／不吃輪盤專用，與路線完全分開。
+// 下方輪盤使用獨立計時器。
 let foodTimer = 0;
 let foodSpinVersion = 0;
 
@@ -201,13 +203,11 @@ function log(text) {
   $('logs').prepend(item);
 }
 
-// 只控制路線按鈕，不控制下面的吃／不吃按鈕。
 function state(value) {
   phase = value;
   $('move').disabled = value !== 'idle';
 }
 
-// 只取消路線工作，不取消下面的輪盤。
 function cancel() {
   version++;
   clearTimeout(spinTimer);
@@ -442,6 +442,7 @@ function schoolRings(data) {
     ) return;
 
     const points = ids.map(id => nodes.get(id));
+
     if (points.every(Boolean)) rings.push(points);
   }
 
@@ -684,7 +685,6 @@ function buildRoads(data) {
     }
 
     gates.front.coords = best.coords;
-
     log('前門暫依 OSM 圓環定位，可按「設定前門」校正。');
   }
 
@@ -948,12 +948,10 @@ function simplifyRoads(nodes) {
       keep: members.some(id => nodes.get(id).keep),
       terminal: members.some(id => nodes.get(id).terminal),
       destination:
-        members
-          .map(id => nodes.get(id).destination)
+        members.map(id => nodes.get(id).destination)
           .find(Boolean) || '',
       label:
-        members
-          .map(id => nodes.get(id).label)
+        members.map(id => nodes.get(id).label)
           .find(Boolean) || ''
     });
   }
@@ -1497,7 +1495,6 @@ async function resetGame() {
   $('logs').replaceChildren();
   trail.setLatLngs([]);
 
-  // 只重置路線，不清除下面的輪盤結果。
   try {
     await loadData(token);
 
@@ -1619,7 +1616,6 @@ function availableRoutes() {
   );
 }
 
-// 路線輪盤專用。
 function roulette(draw, done, count = 10) {
   const token = version;
 
@@ -1776,17 +1772,14 @@ function animate(route, label) {
       }
     } else if (!availableRoutes().length) {
       $('move').disabled = true;
-      log('目前圖資沒有其他連通出口，可重置路線。');
+      log('目前沒有其他可行出口，可重置路線。');
     }
   }
 
   animationFrame = requestAnimationFrame(draw);
 }
 
-// 完全獨立的吃／不吃輪盤。
-// 不讀寫路線狀態、地圖、路線結果或路線按鈕。
-// 移動中、抽路線中、載入中都能按。
-// 連續點擊只重新開始這個輪盤。
+// 與路線完全獨立，可隨時重抽。
 function spinFood() {
   clearTimeout(foodTimer);
 
@@ -1935,6 +1928,341 @@ function init() {
 }
 
 window.addEventListener('load', init);
+
+// ===== 探索範圍：只刪越界，不重新合併路口 =====
+
+function makeTravelBoundary(northEastPoint, westPoint) {
+  const valid = point =>
+    Array.isArray(point) &&
+    point.length === 2 &&
+    point.every(Number.isFinite) &&
+    Math.abs(point[0]) <= 90 &&
+    Math.abs(point[1]) <= 180;
+
+  if (!valid(northEastPoint) || !valid(westPoint)) {
+    throw new Error('請提供兩個有效的緯度、經度');
+  }
+
+  const boundary = {
+    north: northEastPoint[0],
+    east: northEastPoint[1],
+    west: westPoint[1]
+  };
+
+  if (boundary.west > boundary.east) {
+    throw new Error(
+      '西邊界在東邊界以東，請確認兩個定位點'
+    );
+  }
+
+  return boundary;
+}
+
+function isWithinTravelBoundary(point, boundary) {
+  const epsilon = 1e-10;
+
+  return (
+    point[0] <= boundary.north + epsilon &&
+    point[1] <= boundary.east + epsilon &&
+    point[1] >= boundary.west - epsilon
+  );
+}
+
+function restrictExistingJunctions(existingGraph, boundary) {
+  const keptIds = new Set(
+    [...existingGraph]
+      .filter(([, node]) =>
+        isWithinTravelBoundary(node.coords, boundary)
+      )
+      .map(([id]) => id)
+  );
+
+  const result = new Map();
+
+  for (const [id, node] of existingGraph) {
+    if (!keptIds.has(id)) continue;
+
+    result.set(id, {
+      ...node,
+
+      // 整條道路必須都在範圍內。
+      routes: node.routes.filter(route =>
+        keptIds.has(route.to) &&
+        route.coords.every(point =>
+          isWithinTravelBoundary(point, boundary)
+        )
+      )
+    });
+  }
+
+  // 保留所有範圍內原有節點，不連鎖刪除。
+  return result;
+}
+
+const TRAVEL_BOUNDARY_KEY = 'wuling-travel-boundary-v11';
+
+let travelPoints = {
+  northEast: null,
+  west: null
+};
+
+let settingTravelPoint = null;
+let travelBoundaryLayer;
+
+try {
+  const saved = JSON.parse(
+    localStorage.getItem(TRAVEL_BOUNDARY_KEY) || 'null'
+  );
+
+  if (
+    saved &&
+    ['northEast', 'west'].every(key =>
+      saved[key] === null ||
+      (
+        Array.isArray(saved[key]) &&
+        saved[key].length === 2 &&
+        saved[key].every(Number.isFinite)
+      )
+    )
+  ) {
+    travelPoints = saved;
+  }
+} catch (_) {}
+
+function currentTravelBoundary() {
+  if (
+    !travelPoints.northEast ||
+    !travelPoints.west
+  ) return null;
+
+  return makeTravelBoundary(
+    travelPoints.northEast,
+    travelPoints.west
+  );
+}
+
+function updateBoundaryStatus() {
+  const first = travelPoints.northEast;
+  const second = travelPoints.west;
+
+  $('boundaryStatus').textContent =
+    first && second
+      ? (
+          `已設定：北界 ${first[0].toFixed(6)}、` +
+          `東界 ${first[1].toFixed(6)}、` +
+          `西界 ${second[1].toFixed(6)}`
+        )
+      : (
+          '尚未套用範圍。' +
+          (first ? '第一點已設定；' : '') +
+          (second ? '第二點已設定；' : '') +
+          '請設定兩個界點。'
+        );
+}
+
+function setTravelPoint(key) {
+  if (!map) return;
+
+  cancel();
+
+  settingGate = null;
+  settingTravelPoint = key;
+
+  state('setting');
+  map.getContainer().style.cursor = 'crosshair';
+
+  $('position').textContent =
+    key === 'northEast'
+      ? '請在地圖點選第一個位置：其北方、東方不走。'
+      : '請在地圖點選第二個位置：其西方不走。';
+}
+
+const rebuildBeforeTravelBoundary = rebuild;
+
+rebuild = function() {
+  rebuildBeforeTravelBoundary();
+
+  const boundary = currentTravelBoundary();
+
+  if (travelBoundaryLayer) {
+    travelBoundaryLayer.clearLayers();
+  }
+
+  if (!boundary) return;
+
+  // 僅過濾既有路口，不做第二次合併。
+  graph = restrictExistingJunctions(
+    graph, boundary
+  );
+
+  streets = new Map(
+    [...streets].filter(([, node]) =>
+      isWithinTravelBoundary(node.coords, boundary)
+    )
+  );
+
+  pointLayer.clearLayers();
+
+  for (const node of graph.values()) {
+    L.circleMarker(node.coords, {
+      radius: 5,
+      color: '#fbbf24',
+      weight: 1,
+      fillOpacity: 0.9
+    })
+      .bindTooltip(node.label || '路口')
+      .addTo(pointLayer);
+  }
+
+  if (!graph.size) {
+    throw new Error(
+      '設定範圍內沒有原有路口，請重新設定兩個界點。'
+    );
+  }
+
+  if (travelBoundaryLayer) {
+    const south = boundary.north - 0.05;
+
+    L.polyline(
+      [
+        [south, boundary.west],
+        [boundary.north, boundary.west],
+        [boundary.north, boundary.east],
+        [south, boundary.east]
+      ],
+      {
+        color: '#f87171',
+        weight: 2,
+        dashArray: '6 6',
+        interactive: false
+      }
+    ).addTo(travelBoundaryLayer);
+  }
+
+  log(
+    '✅ 已套用北、東、西邊界；' +
+    '範圍內的原有路口未重新合併。'
+  );
+};
+
+const startBeforeTravelBoundary = start;
+
+start = function() {
+  const boundary = currentTravelBoundary();
+
+  if (
+    boundary &&
+    gates[selectedGate].coords &&
+    !isWithinTravelBoundary(
+      gates[selectedGate].coords,
+      boundary
+    )
+  ) {
+    throw new Error(
+      '所選校門在設定範圍外，請檢查界點或切換校門。'
+    );
+  }
+
+  startBeforeTravelBoundary();
+};
+
+const boundaryControls = document.createElement('div');
+
+boundaryControls.className = 'card';
+
+boundaryControls.innerHTML = `
+  <div class="label">探索範圍</div>
+
+  <div class="row">
+    <button
+      class="small"
+      onclick="setTravelPoint('northEast')"
+    >
+      ① 設定北／東界點
+    </button>
+
+    <button
+      class="small"
+      onclick="setTravelPoint('west')"
+    >
+      ② 設定西界點
+    </button>
+  </div>
+
+  <div id="boundaryStatus" class="note"></div>
+
+  <div class="note">
+    按按鈕後，在地圖點選對應位置。
+    兩點都設定後才套用範圍。
+    界線上的節點保留；越界路段整段排除。
+  </div>
+`;
+
+document.querySelector('.panel').append(boundaryControls);
+
+updateBoundaryStatus();
+
+window.addEventListener('load', () => {
+  if (!map) return;
+
+  travelBoundaryLayer = L.layerGroup().addTo(map);
+
+  map.on('click', event => {
+    if (!settingTravelPoint) return;
+
+    const key = settingTravelPoint;
+
+    const point = [
+      event.latlng.lat,
+      event.latlng.lng
+    ];
+
+    const proposed = {
+      ...travelPoints,
+      [key]: point
+    };
+
+    try {
+      if (proposed.northEast && proposed.west) {
+        makeTravelBoundary(
+          proposed.northEast,
+          proposed.west
+        );
+      }
+
+      travelPoints = proposed;
+
+      try {
+        localStorage.setItem(
+          TRAVEL_BOUNDARY_KEY,
+          JSON.stringify(travelPoints)
+        );
+      } catch (_) {}
+
+      settingTravelPoint = null;
+      map.getContainer().style.cursor = '';
+
+      updateBoundaryStatus();
+      resetGame();
+    } catch (error) {
+      log('❌ ' + error.message);
+    }
+  });
+});
+
+const resetBeforeTravelControls = resetGame;
+
+resetGame = async function() {
+  settingTravelPoint = null;
+  return resetBeforeTravelControls();
+};
+
+const setGateBeforeTravelControls = setGateOnMap;
+
+setGateOnMap = function(key) {
+  settingTravelPoint = null;
+  setGateBeforeTravelControls(key);
+};
 </script>
 </body>
 </html>
