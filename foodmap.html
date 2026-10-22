@@ -31,9 +31,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .log{font-size:13px;line-height:1.6;padding:7px 0;border-bottom:1px solid #334155}
 .note{font-size:12px;color:#94a3b8;line-height:1.7;margin:0}
 .dog{font-size:28px;line-height:30px;text-align:center;filter:drop-shadow(0 3px 4px #0008)}
-.modal{display:none;position:fixed;inset:0;background:#000b;z-index:2000;align-items:center;justify-content:center;padding:20px}
-.modal-box{width:100%;max-width:350px;background:#1e293b;border:2px solid #fbbf24;border-radius:14px;padding:24px;text-align:center}
-.modal-box p{line-height:1.8}
 @media(max-width:849px){
   main{height:auto;flex-direction:column}
   #map{height:52dvh;flex:none;width:100%}
@@ -74,7 +71,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
     </div>
 
     <div class="card">
-      <div class="label">🧭 一次走到下一個路口，不迴轉</div>
+      <div class="label">🧭 路線輪盤・走到下一個路口</div>
       <div class="result" id="direction">尚未轉向</div>
       <div id="position">準備載入道路…</div>
       <button id="move" class="blue" disabled onclick="spinMove()">
@@ -83,11 +80,12 @@ button:disabled{opacity:.45;cursor:not-allowed}
     </div>
 
     <div class="card">
-      <div class="label">🍗 美食輪盤・吃的機率 1/3</div>
+      <div class="label">🍗 獨立輪盤・吃的機率 1/3</div>
       <div class="result" id="foodResult">尚未選擇</div>
-      <button id="food" class="orange" disabled onclick="spinFood()">
-        🍟 轉美食輪盤
+      <button id="food" class="orange" onclick="spinFood()">
+        🍟 轉吃／不吃輪盤
       </button>
+      <div class="note">隨時可以重抽，結果不影響路線。</div>
     </div>
 
     <div>
@@ -95,7 +93,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <div id="logs" aria-live="polite"></div>
     </div>
 
-    <button onclick="resetGame()">🔄 重置／重試載入</button>
+    <button onclick="resetGame()">🔄 重置路線／重試載入</button>
 
     <div class="row">
       <button class="small"
@@ -110,7 +108,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <input id="roadFile" type="file" accept=".json,.osm,.xml" hidden>
 
     <p class="note">
-      版本 9。校內道路排除，同一路口附近的岔路合併；
+      版本 10。校內道路排除，同一路口附近的岔路合併；
       禁止原路迴轉。保留國鼎街、吉昌街與中山路847巷；
       愛買只有一個入口點；排除上海路。
       中山路可沿路走，但不可跨到學校對側。
@@ -120,15 +118,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
     </p>
   </div>
 </main>
-
-<div class="modal" id="modal" role="dialog"
-  aria-modal="true" aria-label="美食輪盤結果">
-  <div class="modal-box">
-    <h2>🎉 在附近找美食！</h2>
-    <p id="foodDescription"></p>
-    <button class="orange" onclick="closeModal()">準備開吃 😋</button>
-  </div>
-</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -175,7 +164,7 @@ try {
 } catch (_) {}
 
 let map, dog, trail;
-let pointLayer, campusLayer, gateLayer, foodLayer;
+let pointLayer, campusLayer, gateLayer;
 
 let rawData = null;
 let streets = new Map();
@@ -195,10 +184,15 @@ let steps = 0;
 let history = [];
 let phase = 'loading';
 
+// 路線專用狀態與計時器。
 let version = 0;
 let animationFrame = 0;
 let spinTimer = 0;
 let requestController;
+
+// 吃／不吃輪盤專用，與路線完全分開。
+let foodTimer = 0;
+let foodSpinVersion = 0;
 
 function log(text) {
   const item = document.createElement('div');
@@ -207,12 +201,13 @@ function log(text) {
   $('logs').prepend(item);
 }
 
+// 只控制路線按鈕，不控制下面的吃／不吃按鈕。
 function state(value) {
   phase = value;
   $('move').disabled = value !== 'idle';
-  $('food').disabled = value !== 'idle';
 }
 
+// 只取消路線工作，不取消下面的輪盤。
 function cancel() {
   version++;
   clearTimeout(spinTimer);
@@ -447,7 +442,6 @@ function schoolRings(data) {
     ) return;
 
     const points = ids.map(id => nodes.get(id));
-
     if (points.every(Boolean)) rings.push(points);
   }
 
@@ -483,7 +477,6 @@ function schoolRings(data) {
         if (index < 0) break;
 
         const part = parts.splice(index, 1)[0];
-
         if (part[0] !== end) part.reverse();
 
         chain.push(...part.slice(1));
@@ -552,7 +545,6 @@ function buildRoads(data) {
     }
   }
 
-  // 保留指定路口，避免被合併或當成中間點。
   for (const node of nodes.values()) {
     const names = [...node.names];
 
@@ -566,7 +558,6 @@ function buildRoads(data) {
     }
   }
 
-  // 從圖資辨識愛買入口，不新增跨地塊的直線。
   const aimaiWays = data.elements.filter(e =>
     e.type === 'way' &&
     e.nodes &&
@@ -638,7 +629,6 @@ function buildRoads(data) {
   const centerXY = xy(center);
   const zhongshan = [];
 
-  // 只用中山路主線當邊界，巷弄不是邊界。
   const mainRoadName =
     /^中山路(?:[一二三四五六七八九十0-9]+段)?$/;
 
@@ -682,10 +672,7 @@ function buildRoads(data) {
           road.distance + distance * 0.1;
 
         if (!best || score < best.score) {
-          best = {
-            coords: node.coords,
-            score
-          };
+          best = { coords: node.coords, score };
         }
       }
     }
@@ -709,8 +696,6 @@ function buildRoads(data) {
     throw new Error('前門離中山路過遠，請重新設定前門');
   }
 
-  // 只在主線附近判斷對側，
-  // 不再用無限延伸的半平面誤刪國鼎街等區域。
   function forbidden(p) {
     const q = xy(p);
     const road = nearestSegment(p, zhongshan);
@@ -768,7 +753,6 @@ function buildRoads(data) {
     if (!node.edges.size) nodes.delete(id);
   }
 
-  // 愛買候選入口只留下單一個道路節點。
   const aimaiCandidates = [...nodes.values()]
     .filter(node => node.terminal);
 
@@ -806,7 +790,6 @@ function buildRoads(data) {
     terminalNodes.add(entry.id);
   }
 
-  // 保留國鼎街的路口及道路端點。
   for (const node of nodes.values()) {
     if (
       ![...node.names].some(name =>
@@ -990,9 +973,7 @@ function simplifyRoads(nodes) {
   }
 
   function internalPath(from, to) {
-    if (from === to) {
-      return [nodes.get(from).coords];
-    }
+    if (from === to) return [nodes.get(from).coords];
 
     const queue = [{
       id: from,
@@ -1013,10 +994,7 @@ function simplifyRoads(nodes) {
         if (route.to === to) return coords;
 
         seen.add(route.to);
-        queue.push({
-          id: route.to,
-          coords
-        });
+        queue.push({ id: route.to, coords });
       }
     }
 
@@ -1262,9 +1240,7 @@ function rebuild() {
 function start() {
   const gate = gates[selectedGate];
 
-  if (!gate.coords) {
-    throw new Error('請先設定校門');
-  }
+  if (!gate.coords) throw new Error('請先設定校門');
 
   let nearest;
   let best = Infinity;
@@ -1317,10 +1293,7 @@ function start() {
             candidate.to === route.to
           )
         ) {
-          startRoutes.push({
-            ...route,
-            coords
-          });
+          startRoutes.push({ ...route, coords });
         }
       }
     }
@@ -1514,21 +1487,17 @@ async function resetGame() {
   if (!map) return;
 
   cancel();
-
   settingGate = null;
   map.getContainer().style.cursor = '';
 
   const token = version;
   state('loading');
 
-  $('modal').style.display = 'none';
   $('direction').textContent = '尚未轉向';
-  $('foodResult').textContent = '尚未選擇';
   $('logs').replaceChildren();
-
-  foodLayer.clearLayers();
   trail.setLatLngs([]);
 
+  // 只重置路線，不清除下面的輪盤結果。
   try {
     await loadData(token);
 
@@ -1540,7 +1509,6 @@ async function resetGame() {
     if (token !== version) return;
 
     state('error');
-
     $('position').textContent = error.message;
     log('❌ ' + error.message);
   }
@@ -1562,7 +1530,6 @@ function setGateOnMap(key) {
   settingGate = key;
   state('setting');
 
-  $('modal').style.display = 'none';
   map.getContainer().style.cursor = 'crosshair';
 
   $('position').textContent =
@@ -1638,8 +1605,6 @@ function routeLabel(route) {
   return `${direction}・${route.name}`;
 }
 
-// 只禁止沿剛走來的道路原路返回。
-// 大角度的正常轉彎不會被誤刪。
 function availableRoutes() {
   const routes = arrived
     ? graph.get(currentId)?.routes || []
@@ -1654,6 +1619,7 @@ function availableRoutes() {
   );
 }
 
+// 路線輪盤專用。
 function roulette(draw, done, count = 10) {
   const token = version;
 
@@ -1685,7 +1651,7 @@ function spinMove() {
 
     log(
       '🛑 沒有其他出口，不迴轉。' +
-      '可轉美食輪盤或重置。'
+      '可隨時抽吃／不吃或重置。'
     );
 
     return;
@@ -1706,7 +1672,6 @@ function spinMove() {
       const label = routeLabel(route);
 
       $('direction').textContent = '🧭 ' + label;
-
       animate(route, label);
     }
   );
@@ -1802,90 +1767,54 @@ function animate(route, label) {
 
       if (node.destination === 'aimai') {
         $('direction').textContent = '📍 抵達愛買入口';
-
-        log(
-          '✅ 已抵達愛買入口，不往上海路走。' +
-          '可轉美食輪盤。'
-        );
+        log('✅ 已抵達愛買入口，不往上海路走。');
       } else {
         $('direction').textContent =
           '📍 ' + (node.label || '道路端點');
 
-        log('抵達實際道路端點，可轉美食輪盤或重置。');
+        log('抵達實際道路端點。');
       }
     } else if (!availableRoutes().length) {
       $('move').disabled = true;
-
-      log(
-        '目前圖資沒有其他連通出口，' +
-        '可轉美食輪盤或重置。'
-      );
+      log('目前圖資沒有其他連通出口，可重置路線。');
     }
   }
 
   animationFrame = requestAnimationFrame(draw);
 }
 
+// 完全獨立的吃／不吃輪盤。
+// 不讀寫路線狀態、地圖、路線結果或路線按鈕。
+// 移動中、抽路線中、載入中都能按。
+// 連續點擊只重新開始這個輪盤。
 function spinFood() {
-  if (phase !== 'idle') return;
+  clearTimeout(foodTimer);
 
-  state('food');
+  const token = ++foodSpinVersion;
+  let spins = 0;
 
-  roulette(
-    () => {
+  function tick() {
+    if (token !== foodSpinVersion) return;
+
+    if (spins++ < 11) {
       $('foodResult').textContent =
         Math.random() < 1 / 3
           ? '🎉 吃！'
           : '❌ 不吃';
-    },
-    () => {
-      if (Math.floor(Math.random() * 3) !== 0) {
-        $('foodResult').textContent = '❌ 不吃';
 
-        state('idle');
-
-        if (
-          graph.get(currentId)?.terminal ||
-          !availableRoutes().length
-        ) {
-          $('move').disabled = true;
-        }
-
-        log('🍔 不吃。');
-        return;
-      }
-
-      state('finished');
-
-      $('foodResult').textContent =
-        '🎉 在附近找美食！';
-
-      const p = dog.getLatLng();
-
-      L.marker(p, {
-        icon: L.divIcon({
-          className: 'dog',
-          html: '🍕',
-          iconSize: [30, 30],
-          iconAnchor: [15, 15]
-        })
-      }).addTo(foodLayer);
-
-      $('foodDescription').textContent =
-        `走過 ${steps} 段道路後，` +
-        '決定在目前位置附近找美食！' +
-        `座標：${p.lat.toFixed(5)}, ` +
-        `${p.lng.toFixed(5)}。` +
-        '尚未搜尋實際店家。';
-
-      $('modal').style.display = 'flex';
-      log('🍔 決定在附近用餐！');
+      foodTimer = setTimeout(tick, 80);
+      return;
     }
-  );
-}
 
-function closeModal() {
-  $('modal').style.display = 'none';
+    $('foodResult').textContent =
+      Math.floor(Math.random() * 3) === 0
+        ? '🎉 吃！'
+        : '❌ 不吃';
+
+    foodTimer = 0;
+  }
+
+  tick();
 }
 
 function backupRoads() {
@@ -1911,7 +1840,6 @@ function backupRoads() {
 
 async function importRoads(event) {
   const file = event.target.files[0];
-
   if (!file) return;
 
   try {
@@ -1922,7 +1850,6 @@ async function importRoads(event) {
     }
 
     cancel();
-
     rawData = data;
     cacheData();
 
@@ -1956,7 +1883,6 @@ function init() {
   campusLayer = L.layerGroup().addTo(map);
   pointLayer = L.layerGroup().addTo(map);
   gateLayer = L.layerGroup().addTo(map);
-  foodLayer = L.layerGroup().addTo(map);
 
   trail = L.polyline([], {
     color: '#3b82f6',
